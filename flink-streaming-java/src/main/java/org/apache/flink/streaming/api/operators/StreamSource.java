@@ -53,9 +53,12 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>> extends Abstract
 	public StreamSource(SRC sourceFunction) {
 		super(sourceFunction);
 
+		// 源头节点
 		this.chainingStrategy = ChainingStrategy.HEAD;
 	}
 
+	// StreamTask.invoke -> headOperator = operatorChain.getHeadOperator -> headOperator.run
+	// 执行点：SourceStreamTask.LegacySourceFunctionThread.run
 	public void run(final Object lockingObject,
 			final StreamStatusMaintainer streamStatusMaintainer,
 			final OperatorChain<?, ?> operatorChain) throws Exception {
@@ -97,6 +100,7 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>> extends Abstract
 			-1);
 
 		try {
+			// 执行用户自定义SourceFunction
 			userFunction.run(ctx);
 
 			// if we get here, then the user function either exited after being done (finite source)

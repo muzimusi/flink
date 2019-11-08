@@ -59,7 +59,9 @@ public class SingleOutputStreamOperator<T> extends DataStream<T> {
 
 	private boolean wasSplitApplied = false;
 
+	// SingleOutputStreamOperator既NokeyedDataStream，接收具体的transformation
 	protected SingleOutputStreamOperator(StreamExecutionEnvironment environment, Transformation<T> transformation) {
+		// 向上传递
 		super(environment, transformation);
 	}
 

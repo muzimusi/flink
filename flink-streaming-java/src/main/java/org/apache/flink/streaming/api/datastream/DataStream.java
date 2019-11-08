@@ -122,6 +122,7 @@ public class DataStream<T> {
 	 *
 	 * @param environment The StreamExecutionEnvironment
 	 */
+	// DataStream必须记录当前的env，和当前作用于自己的transformation
 	public DataStream(StreamExecutionEnvironment environment, Transformation<T> transformation) {
 		this.environment = Preconditions.checkNotNull(environment, "Execution Environment must not be null.");
 		this.transformation = Preconditions.checkNotNull(transformation, "Stream Transformation must not be null.");
@@ -582,11 +583,17 @@ public class DataStream<T> {
 	 *            output type
 	 * @return The transformed {@link DataStream}.
 	 */
+	// mapFuncntion udf函数传入接口
 	public <R> SingleOutputStreamOperator<R> map(MapFunction<T, R> mapper) {
 
+		// inputType -> transformation -> outputType
+		// 解析用户创将的udf函数，得到输出类型
 		TypeInformation<R> outType = TypeExtractor.getMapReturnTypes(clean(mapper), getType(),
 				Utils.getCallLocationName(), true);
 
+		// 将用户udf mapFunction 包装成统一的StreamMap [StreamMap同样集成自AbstractUdfStreamOperator]
+		// 本次transformation的outputType是下次transformation的inputType
+		// 记录当流在本次operator下的transformation，以及datastream的转变
 		return transform("Map", outType, new StreamMap<>(clean(mapper)));
 	}
 
@@ -1179,16 +1186,19 @@ public class DataStream<T> {
 		// read the output type of the input Transform to coax out errors about MissingTypeInfo
 		transformation.getOutputType();
 
+		// 构建本次的transformation操作
 		OneInputTransformation<T, R> resultTransform = new OneInputTransformation<>(
-				this.transformation,
+				this.transformation,// 1、记录上一次的transformation
 				operatorName,
-				operator,
+				operator,// 2、根据本次算子operator创建transformation
 				outTypeInfo,
 				environment.getParallelism());
 
+		// 3、transform动作之后dataStream会发生转变
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		SingleOutputStreamOperator<R> returnStream = new SingleOutputStreamOperator(environment, resultTransform);
 
+		// 4、将transformation添加到env的transformations集合
 		getExecutionEnvironment().addOperator(resultTransform);
 
 		return returnStream;

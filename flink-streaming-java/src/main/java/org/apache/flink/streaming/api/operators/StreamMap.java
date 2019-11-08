@@ -33,6 +33,7 @@ public class StreamMap<IN, OUT>
 
 	public StreamMap(MapFunction<IN, OUT> mapper) {
 		super(mapper);
+		// chain策略
 		chainingStrategy = ChainingStrategy.ALWAYS;
 	}
 

@@ -1470,7 +1470,11 @@ public abstract class StreamExecutionEnvironment {
 
 		clean(function);
 
+		// 创建统一的source算子StreamSource，source算子继承自AbstractUdfStreamOperator，需要传入用户自定义SourceFunction
 		final StreamSource<OUT, ?> sourceOperator = new StreamSource<>(function);
+
+		// 从源头开始创建dataStream [keyedDataStream 或者 NoKeyedDataStream（SingleOutputStreamOperator），吐槽一下命名]，
+		// 当dataStream上作用transform后可以转变成另外的dataStream
 		return new DataStreamSource<>(this, typeInfo, sourceOperator, isParallel, sourceName);
 	}
 
@@ -1540,10 +1544,12 @@ public abstract class StreamExecutionEnvironment {
 		return getStreamGraphGenerator().setJobName(jobName).generate();
 	}
 
+	// 创建StreamGraphGenerator [program -> streamGraph]
 	private StreamGraphGenerator getStreamGraphGenerator() {
 		if (transformations.size() <= 0) {
 			throw new IllegalStateException("No operators defined in streaming topology. Cannot execute.");
 		}
+		// StreamGraphGenerator 包含本次job全部算子转化而来的transformations，以及job executionConfig checkpointCfg等
 		return new StreamGraphGenerator(transformations, config, checkpointCfg)
 			.setStateBackend(defaultStateBackend)
 			.setChaining(isChainingEnabled)

@@ -194,6 +194,7 @@ public class StreamGraphGenerator {
 	}
 
 	public StreamGraph generate() {
+		// 创建一张空的StreamGraph
 		streamGraph = new StreamGraph(executionConfig, checkpointConfig);
 		streamGraph.setStateBackend(stateBackend);
 		streamGraph.setChaining(chaining);
@@ -203,9 +204,12 @@ public class StreamGraphGenerator {
 		streamGraph.setJobName(jobName);
 		streamGraph.setBlockingConnectionsBetweenChains(blockingConnectionsBetweenChains);
 
+		// 避免重复构建，记录已建过的transformation
 		alreadyTransformed = new HashMap<>();
 
+		// 遍历transformations
 		for (Transformation<?> transformation: transformations) {
+			// 对env中的每个transformation进行构建
 			transform(transformation);
 		}
 

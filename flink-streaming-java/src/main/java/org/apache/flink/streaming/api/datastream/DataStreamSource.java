@@ -32,10 +32,12 @@ import org.apache.flink.streaming.api.transformations.SourceTransformation;
 public class DataStreamSource<T> extends SingleOutputStreamOperator<T> {
 
 	boolean isParallel;
-
+	// 创建dataStream，必须是从源头开始构建，后续在该流上会有不断的transformation动作，每次动作都会形成新的dataStream
 	public DataStreamSource(StreamExecutionEnvironment environment,
 			TypeInformation<T> outTypeInfo, StreamSource<T, ?> operator,
 			boolean isParallel, String sourceName) {
+		// 构建作用于source上具体的transformation：SourceTransformation
+		// 具体的transformation一定会包含具体的算子operator，operator一定是继承自AbstractUdfStreamOperator，这样才能包含用户自定逻辑
 		super(environment, new SourceTransformation<>(sourceName, operator, outTypeInfo, environment.getParallelism()));
 
 		this.isParallel = isParallel;

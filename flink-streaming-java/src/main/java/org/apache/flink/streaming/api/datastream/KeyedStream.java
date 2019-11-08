@@ -149,6 +149,7 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	 * @param keyType
 	 *            Defines the type of the extracted keys
 	 */
+	// KeyedStream需要记录当前env，和当前的具体操作PartitionTransformation
 	@Internal
 	KeyedStream(
 		DataStream<T> stream,
