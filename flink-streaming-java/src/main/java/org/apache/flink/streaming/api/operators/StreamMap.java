@@ -32,6 +32,7 @@ public class StreamMap<IN, OUT>
 	private static final long serialVersionUID = 1L;
 
 	public StreamMap(MapFunction<IN, OUT> mapper) {
+		// streamMap作为具体的算子，需要向上传递，通知上层本此具体的算子是什么
 		super(mapper);
 		// chain策略
 		chainingStrategy = ChainingStrategy.ALWAYS;
@@ -39,6 +40,9 @@ public class StreamMap<IN, OUT>
 
 	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
+		// userFunction为AbstractUdfStreamOperator的成员，是具体的算子
+		// 具体算子的调用不可能放在AbstractUdfStreamOperator，因为算子如何执行只有自己本身清楚
+		// StreamMap是对用户自定义MapFunction的封装，所以调用MapFunction.map方法
 		output.collect(element.replace(userFunction.map(element.getValue())));
 	}
 }

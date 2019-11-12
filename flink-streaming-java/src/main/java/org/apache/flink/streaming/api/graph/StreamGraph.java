@@ -258,6 +258,10 @@ public class StreamGraph extends StreamingPlan {
 			// 指定了vertexClass [OneInputStreamTask extends StreamTask； StreamTask extends AbstractInvokable]
 			// AbstractInvokable的invoke方法会被taskmanager执行。
 		} else {
+			// 创建streamNode，vertexClass记录stramNode将来会真正运行的task类 (**)
+			// OneInputStreamTask是将来会被具体的执行task，继承自StreamTask，streamTask内部持有operatorChain
+			// streamTask invoke方法会调用StreamInputProcessor.processInput来处理算子的input，最终会调用streamOperator.processElement
+			// 最终会调用userFunction中用户自定的方法，如map
 			addNode(vertexID, slotSharingGroup, coLocationGroup, OneInputStreamTask.class, operatorFactory, operatorName);
 		}
 

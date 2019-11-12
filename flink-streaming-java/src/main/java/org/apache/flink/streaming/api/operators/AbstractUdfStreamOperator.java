@@ -61,6 +61,7 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends Function>
 	private transient boolean functionsClosed = false;
 
 	public AbstractUdfStreamOperator(F userFunction) {
+		// AbstractUdfStreamOperator接受到本次具体的算子
 		this.userFunction = requireNonNull(userFunction);
 		checkUdfCheckpointingPreconditions();
 	}

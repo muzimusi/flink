@@ -582,6 +582,17 @@ public class DataStream<T> {
 	 * @param <R>
 	 *            output type
 	 * @return The transformed {@link DataStream}.
+	 *
+	 * *****************************************************************************************************************
+	 * MapFunction -> StreamMap(userFunction) -> AbstractUdfStreamOperator(userFunction) -> AbstractStreamOperator -> StreamOperator
+	 * 																														|
+	 * 																														|
+	 * 														       — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
+	 * 															  |
+	 * 															  v
+	 * userFunction.map <- StreamMap.processElement <- streamOperator.processElement <- StreamInputProcessor.processInput <- OneInputStreamTask <- StreamTask
+	 * *****************************************************************************************************************
+	 *
 	 */
 	// mapFuncntion udf函数传入接口
 	public <R> SingleOutputStreamOperator<R> map(MapFunction<T, R> mapper) {
@@ -591,7 +602,7 @@ public class DataStream<T> {
 		TypeInformation<R> outType = TypeExtractor.getMapReturnTypes(clean(mapper), getType(),
 				Utils.getCallLocationName(), true);
 
-		// 将用户udf mapFunction 包装成统一的StreamMap [StreamMap同样集成自AbstractUdfStreamOperator]
+		// 将用户udf mapFunction (mapper) 包装成flink可识别的统一的StreamMap [StreamMap继承自AbstractUdfStreamOperator]
 		// 本次transformation的outputType是下次transformation的inputType
 		// 记录当流在本次operator下的transformation，以及datastream的转变
 		return transform("Map", outType, new StreamMap<>(clean(mapper)));
