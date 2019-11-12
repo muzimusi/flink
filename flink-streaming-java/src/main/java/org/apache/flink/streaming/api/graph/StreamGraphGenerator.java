@@ -209,7 +209,7 @@ public class StreamGraphGenerator {
 
 		// 遍历transformations
 		for (Transformation<?> transformation: transformations) {
-			// 对env中的每个transformation进行构建
+			// 对env中的每个transformation进行构建，形成streamNode，streamEdge
 			transform(transformation);
 		}
 
@@ -230,6 +230,7 @@ public class StreamGraphGenerator {
 	 */
 	private Collection<Integer> transform(Transformation<?> transform) {
 
+		// 避免重复转换
 		if (alreadyTransformed.containsKey(transform)) {
 			return alreadyTransformed.get(transform);
 		}
@@ -641,6 +642,7 @@ public class StreamGraphGenerator {
 	 */
 	private <IN, OUT> Collection<Integer> transformOneInputTransform(OneInputTransformation<IN, OUT> transform) {
 
+		// 递归处理transformation的input（上游transformation）
 		Collection<Integer> inputIds = transform(transform.getInput());
 
 		// the recursive call might have already transformed this
@@ -648,11 +650,13 @@ public class StreamGraphGenerator {
 			return alreadyTransformed.get(transform);
 		}
 
+		// 确定slotShareGroup name
 		String slotSharingGroup = determineSlotSharingGroup(transform.getSlotSharingGroup(), inputIds);
 
+		// 构建StreamNode并加入streamGraph
 		streamGraph.addOperator(transform.getId(),
 				slotSharingGroup,
-				transform.getCoLocationGroupKey(),
+				transform.getCoLocationGroupKey(),//具有相同coLocationGroup的不同task的subtask会被调度到同一个slot中
 				transform.getOperatorFactory(),
 				transform.getInputType(),
 				transform.getOutputType(),
@@ -669,6 +673,7 @@ public class StreamGraphGenerator {
 		streamGraph.setMaxParallelism(transform.getId(), transform.getMaxParallelism());
 
 		for (Integer inputId: inputIds) {
+			// 构造streamEdge，连接input transformation（上游）和该transformation（下游）
 			streamGraph.addEdge(inputId, transform.getId(), 0);
 		}
 
@@ -745,6 +750,10 @@ public class StreamGraphGenerator {
 	 * @param specifiedGroup The group specified by the user.
 	 * @param inputIds The IDs of the input operations.
 	 */
+	// 1、若用户通过slotShareGroup指定groupName，则使用用户指定的groupName
+	// 2、若用户没有特别指定
+	//    2.1、若全部的input transformation都指定同一个groupName，则沿用该groupName
+	//    2.2、否则为default
 	private String determineSlotSharingGroup(String specifiedGroup, Collection<Integer> inputIds) {
 		if (!isSlotSharingEnabled) {
 			return null;

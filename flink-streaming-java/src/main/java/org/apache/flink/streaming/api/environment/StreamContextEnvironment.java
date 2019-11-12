@@ -47,6 +47,7 @@ public class StreamContextEnvironment extends StreamExecutionEnvironment {
 
 	@Override
 	public JobExecutionResult execute(StreamGraph streamGraph) throws Exception {
+		// streamGraph构造完成，清空transformation tree
 		transformations.clear();
 
 		// execute the programs

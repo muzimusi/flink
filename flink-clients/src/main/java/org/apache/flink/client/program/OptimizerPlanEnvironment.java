@@ -45,6 +45,7 @@ public class OptimizerPlanEnvironment extends ExecutionEnvironment {
 	//  Execution Environment methods
 	// ------------------------------------------------------------------------
 
+	// env.execute会调用该方法，得到optimizerPlan
 	@Override
 	public JobExecutionResult execute(String jobName) throws Exception {
 		Plan plan = createProgramPlan(jobName);
@@ -80,6 +81,7 @@ public class OptimizerPlanEnvironment extends ExecutionEnvironment {
 
 		setAsContext();
 		try {
+			// 会执行用户提交程序的main方法，会执行env.execute() -> this.execute(jobName)
 			prog.invokeInteractiveModeForExecution();
 		}
 		catch (ProgramInvocationException e) {

@@ -106,6 +106,9 @@ public class StreamGraph extends StreamingPlan {
 	private Map<Integer, StreamNode> streamNodes;
 	private Set<Integer> sources;
 	private Set<Integer> sinks;
+	/**
+	 * 三类虚拟节点
+	 */
 	private Map<Integer, Tuple2<Integer, List<String>>> virtualSelectNodes;
 	private Map<Integer, Tuple2<Integer, OutputTag>> virtualSideOutputNodes;
 	private Map<Integer, Tuple3<Integer, StreamPartitioner<?>, ShuffleMode>> virtualPartitionNodes;
@@ -120,6 +123,7 @@ public class StreamGraph extends StreamingPlan {
 		this.checkpointConfig = checkNotNull(checkpointConfig);
 
 		// create an empty new stream graph.
+		// 相当于初始化工作，一张空的streamGraph
 		clear();
 	}
 
@@ -247,8 +251,12 @@ public class StreamGraph extends StreamingPlan {
 			TypeInformation<OUT> outTypeInfo,
 			String operatorName) {
 
+		// souce节点需要特殊处理，截止1.9.1没有sourceOperatorFactory
 		if (operatorFactory.isStreamSource()) {
 			addNode(vertexID, slotSharingGroup, coLocationGroup, SourceStreamTask.class, operatorFactory, operatorName);
+			// 非source节点
+			// 指定了vertexClass [OneInputStreamTask extends StreamTask； StreamTask extends AbstractInvokable]
+			// AbstractInvokable的invoke方法会被taskmanager执行。
 		} else {
 			addNode(vertexID, slotSharingGroup, coLocationGroup, OneInputStreamTask.class, operatorFactory, operatorName);
 		}
@@ -447,6 +455,7 @@ public class StreamGraph extends StreamingPlan {
 			OutputTag outputTag,
 			ShuffleMode shuffleMode) {
 
+		// 连边时候会略过虚拟节点，找origin node，即：继续向上找可以连边的非虚拟节点
 		if (virtualSideOutputNodes.containsKey(upStreamVertexID)) {
 			int virtualId = upStreamVertexID;
 			upStreamVertexID = virtualSideOutputNodes.get(virtualId).f0;
@@ -470,10 +479,11 @@ public class StreamGraph extends StreamingPlan {
 			}
 			shuffleMode = virtualPartitionNodes.get(virtualId).f2;
 			addEdgeInternal(upStreamVertexID, downStreamVertexID, typeNumber, partitioner, outputNames, outputTag, shuffleMode);
-		} else {
+		} else { // 如果是非虚拟节点
 			StreamNode upstreamNode = getStreamNode(upStreamVertexID);
 			StreamNode downstreamNode = getStreamNode(downStreamVertexID);
 
+			// 上下有节点之间的partitioner策略
 			// If no partitioner was specified and the parallelism of upstream and downstream
 			// operator matches use forward partitioning, use rebalance otherwise.
 			if (partitioner == null && upstreamNode.getParallelism() == downstreamNode.getParallelism()) {
@@ -492,11 +502,21 @@ public class StreamGraph extends StreamingPlan {
 			}
 
 			if (shuffleMode == null) {
+				// 数据交换模式：
+				// PIPELINED：上游输出，下游立即消费
+				// BATCH：上游先全部输出，下游才开始消费
 				shuffleMode = ShuffleMode.UNDEFINED;
 			}
 
+			// 创建streamEdge
+			// streamEdge包含内容：
+			// 1、两端node
+			// 2、分区partitioner
+			// 3、数据交换模式：shuffleMode
+			// 4、关于旁路输出，select等信息
 			StreamEdge edge = new StreamEdge(upstreamNode, downstreamNode, typeNumber, outputNames, partitioner, outputTag, shuffleMode);
 
+			// 指定streamNode出边入边
 			getStreamNode(edge.getSourceId()).addOutEdge(edge);
 			getStreamNode(edge.getTargetId()).addInEdge(edge);
 		}
@@ -734,6 +754,7 @@ public class StreamGraph extends StreamingPlan {
 					+ "\nThe user can force enable state checkpoints with the reduced guarantees by calling: env.enableCheckpointing(interval,true)");
 		}
 
+		// 传入streamGraph生成jobGraph
 		return StreamingJobGraphGenerator.createJobGraph(this, jobID);
 	}
 

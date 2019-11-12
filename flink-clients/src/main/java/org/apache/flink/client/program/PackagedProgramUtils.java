@@ -77,6 +77,7 @@ public class PackagedProgramUtils {
 
 			optimizerPlanEnvironment.setParallelism(defaultParallelism);
 
+			// 会调用用户program的main方法，会执行stream/batchEnv.execute()
 			flinkPlan = optimizerPlanEnvironment.getOptimizedPlan(packagedProgram);
 		} else {
 			throw new ProgramInvocationException("PackagedProgram does not have a valid invocation mode.");
@@ -84,10 +85,18 @@ public class PackagedProgramUtils {
 
 		final JobGraph jobGraph;
 
+		// 构造jobgraph
+		// streaming模式
+		// flinkPlan此时为streamGraph (extends StreamingPlan)
+		// StreamingJobGraphGenerator.createJobGraph
 		if (flinkPlan instanceof StreamingPlan) {
 			jobGraph = ((StreamingPlan) flinkPlan).getJobGraph(jobID);
 			jobGraph.setSavepointRestoreSettings(packagedProgram.getSavepointSettings());
-		} else {
+		}
+		// batch模式
+		// flinkPlan此时为OptimizedPlan
+		// JobGraphGenerator.compileJobGraph
+		else {
 			final JobGraphGenerator jobGraphGenerator = new JobGraphGenerator(configuration);
 			jobGraph = jobGraphGenerator.compileJobGraph((OptimizedPlan) flinkPlan, jobID);
 		}

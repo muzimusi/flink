@@ -83,6 +83,7 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 		Set<Integer> visited = new HashSet<>();
 		Queue<StreamNode> remaining = new ArrayDeque<>();
 
+		// 根据id大小对souce节点排序
 		// We need to make the source order deterministic. The source IDs are
 		// not returned in the same order, which means that submitting the same
 		// program twice might result in different traversal, which breaks the
@@ -92,6 +93,13 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 			sources.add(sourceNodeId);
 		}
 		Collections.sort(sources);
+
+		// 宽度优先遍历：(借助队列进行层次遍历)
+		// 辅助空间： 1、辅助队列remaining 2、标记集合visited
+		// 步骤：
+		// 1.第一层为source节点，加入remaining队列，从队首开始遍历
+		// 2.每次遍历后移除队首元素并进行mark，若队首元素存在outPut节点，将加油节点加入remaining队列
+		// 重复1-2步，知道全部元素遍历
 
 		//
 		// Traverse the graph in a breadth-first manner. Keep in mind that
@@ -149,8 +157,12 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 			StreamGraph streamGraph) {
 
 		// Check for user-specified ID
+		// 检查用户是否手动为该算子设置UUID
 		String userSpecifiedHash = node.getTransformationUID();
 
+		// 用户没有手动自定uuid
+		// 节点生成hash值的前提：其所有input节点均已经生成hash值
+		// 因为，节点的hash值生成策略要兼顾node-local properties and input and output edges.
 		if (userSpecifiedHash == null) {
 			// Check that all input nodes have their hashes computed
 			for (StreamEdge inEdge : node.getInEdges()) {
@@ -163,6 +175,7 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 			}
 
 			Hasher hasher = hashFunction.newHasher();
+			// 兼顾node-local properties and input and output edges
 			byte[] hash = generateDeterministicHash(node, hasher, hashes, isChainingEnabled, streamGraph);
 
 			if (hashes.put(node.getId(), hash) != null) {
@@ -173,6 +186,7 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 
 			return true;
 		} else {
+			// 如果用户当前算子设置了uuid
 			Hasher hasher = hashFunction.newHasher();
 			byte[] hash = generateUserSpecifiedHash(node, hasher);
 
@@ -287,6 +301,15 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 		StreamOperatorFactory<?> headOperator = upStreamVertex.getOperatorFactory();
 		StreamOperatorFactory<?> outOperator = downStreamVertex.getOperatorFactory();
 
+		// chain条件判断
+		// 1、下游节点只有一直上游输入
+		// 2、两端算子不为空
+		// 3、两端算子有相同的slotShareGroup
+		// 4、下游算子的chain策略为ALWAYS
+		// 5、上游算子的chain策略为HEAD或ALWAYS
+		// 6、两节点之前的edge partition为Forward
+		// 7、两个算子的并行度相同
+		// 8、开起允许Chain配置
 		return downStreamVertex.getInEdges().size() == 1
 				&& outOperator != null
 				&& headOperator != null

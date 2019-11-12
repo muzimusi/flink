@@ -33,6 +33,10 @@ import java.util.Collection;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+// Transformation和dataStream的关系：
+// 1、每个transformation都会对应一个transformation
+// 2、该transformation作用于dataStream后会产生新dataStream
+// transformation tree -> streamGraph -> jobGraph -> ExecutionGraph -> 物理执行图（subTask）
 /**
  * A {@code Transformation} represents the operation that creates a
  * DataStream. Every DataStream has an underlying
