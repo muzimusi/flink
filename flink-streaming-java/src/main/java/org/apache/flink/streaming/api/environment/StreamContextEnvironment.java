@@ -45,6 +45,7 @@ public class StreamContextEnvironment extends StreamExecutionEnvironment {
 		}
 	}
 
+	// session 模式下会走这里
 	@Override
 	public JobExecutionResult execute(StreamGraph streamGraph) throws Exception {
 		// streamGraph构造完成，清空transformation tree
@@ -53,11 +54,18 @@ public class StreamContextEnvironment extends StreamExecutionEnvironment {
 		// execute the programs
 		if (ctx instanceof DetachedEnvironment) {
 			LOG.warn("Job was executed in detached mode, the results will be available on completion.");
+			// 将streamGraph传入DetachedEnvironment，以备后续操作
+			// FlinkPlan子类：
+			// streamGraph -> streamingPlan -> FlinkPlan
+			// OptimizedPlan -> FlinkPlan
 			((DetachedEnvironment) ctx).setDetachedPlan(streamGraph);
 			return DetachedEnvironment.DetachedJobExecutionResult.INSTANCE;
 		} else {
 			return ctx
-				.getClient()
+				.getClient() // RestClusterClient
+				// ClusterClient.run 动作
+				// 1. jobGraph创建时机：getJobGraph
+				// 2. job提交时机：submitJob （restClusterClient#submitJob），提交给dispatcher
 				.run(streamGraph, ctx.getJars(), ctx.getClasspaths(), ctx.getUserCodeClassLoader(), ctx.getSavepointRestoreSettings())
 				.getJobExecutionResult();
 		}

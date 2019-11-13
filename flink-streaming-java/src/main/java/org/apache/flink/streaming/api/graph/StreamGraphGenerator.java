@@ -334,12 +334,16 @@ public class StreamGraphGenerator {
 	 * property. @see StreamGraphGenerator
 	 */
 	private <T> Collection<Integer> transformPartition(PartitionTransformation<T> partition) {
+		// 上游
 		Transformation<T> input = partition.getInput();
 		List<Integer> resultIds = new ArrayList<>();
 
+		// 递归处理
+		// transformedIds为虚拟节点（由PartitionTransformation转化）的上游节点，即：originalIds
 		Collection<Integer> transformedIds = transform(input);
 		for (Integer transformedId: transformedIds) {
 			int virtualId = Transformation.getNewNodeId();
+			// 生成虚拟节点
 			streamGraph.addVirtualPartitionNode(
 					transformedId, virtualId, partition.getPartitioner(), partition.getShuffleMode());
 			resultIds.add(virtualId);
@@ -574,6 +578,8 @@ public class StreamGraphGenerator {
 	private <T> Collection<Integer> transformSource(SourceTransformation<T> source) {
 		String slotSharingGroup = determineSlotSharingGroup(source.getSlotSharingGroup(), Collections.emptyList());
 
+		// source节点不存在上游
+		// source节点只需要转换成StreamNode就好，streamNode的出边会在souce后的第一个streamNode的转换过程中指定
 		streamGraph.addSource(source.getId(),
 				slotSharingGroup,
 				source.getCoLocationGroupKey(),
@@ -597,6 +603,7 @@ public class StreamGraphGenerator {
 	 */
 	private <T> Collection<Integer> transformSink(SinkTransformation<T> sink) {
 
+		// sink的上游节点
 		Collection<Integer> inputIds = transform(sink.getInput());
 
 		String slotSharingGroup = determineSlotSharingGroup(sink.getSlotSharingGroup(), inputIds);
@@ -642,7 +649,7 @@ public class StreamGraphGenerator {
 	 */
 	private <IN, OUT> Collection<Integer> transformOneInputTransform(OneInputTransformation<IN, OUT> transform) {
 
-		// 递归处理transformation的input（上游transformation）
+		// 递归处理transformation的input（对上游节点进行transformation）
 		Collection<Integer> inputIds = transform(transform.getInput());
 
 		// the recursive call might have already transformed this

@@ -234,6 +234,7 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 	public JobSubmissionResult submitJob(JobGraph jobGraph, ClassLoader classLoader) throws ProgramInvocationException {
 		log.info("Submitting job {} (detached: {}).", jobGraph.getJobID(), isDetached());
 
+		// 非detached模式下：通过rest方式直接提交jobGraph
 		final CompletableFuture<JobSubmissionResult> jobSubmissionFuture = submitJob(jobGraph);
 
 		if (isDetached()) {

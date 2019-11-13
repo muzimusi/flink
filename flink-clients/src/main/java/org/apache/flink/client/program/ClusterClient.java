@@ -255,10 +255,12 @@ public abstract class ClusterClient<T> {
 		final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 		try {
 			Thread.currentThread().setContextClassLoader(prog.getUserCodeClassLoader());
+			// 用户只是提供一个普通带main函数的类，代码不会走这里，走下面分支
 			if (prog.isUsingProgramEntryPoint()) {
 				final JobWithJars jobWithJars = prog.getPlanWithJars();
 				return run(jobWithJars, parallelism, prog.getSavepointSettings());
 			}
+			// 这里会执行用户main方法，触发env.execute
 			else if (prog.isUsingInteractiveMode()) {
 				log.info("Starting program in interactive mode (detached: {})", isDetached());
 
@@ -271,6 +273,8 @@ public abstract class ClusterClient<T> {
 
 				try {
 					// invoke main method
+					// 调用用户main方法，执行env.execute
+					// 如：stream模式 [streamEnv.execute => StreamContextEnvironment#execute]
 					prog.invokeInteractiveModeForExecution();
 					if (lastJobExecutionResult == null && factory.getLastEnvCreated() == null) {
 						throw new ProgramMissingJobException("The program didn't contain a Flink job.");
@@ -331,6 +335,7 @@ public abstract class ClusterClient<T> {
 		return run(compiledPlan, libraries, classpaths, classLoader, SavepointRestoreSettings.none());
 	}
 
+	// yarn-session 非detached模式
 	public JobSubmissionResult run(FlinkPlan compiledPlan,
 			List<URL> libraries, List<URL> classpaths, ClassLoader classLoader, SavepointRestoreSettings savepointSettings)
 			throws ProgramInvocationException {

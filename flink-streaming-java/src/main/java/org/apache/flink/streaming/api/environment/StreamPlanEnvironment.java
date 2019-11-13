@@ -53,12 +53,13 @@ public class StreamPlanEnvironment extends StreamExecutionEnvironment {
 		return execute("");
 	}
 
+	// per-job detached模式下执行该execute，此时streamGraph已经生成
 	@Override
 	public JobExecutionResult execute(StreamGraph streamGraph) throws Exception {
 		transformations.clear();
 
 		if (env instanceof OptimizerPlanEnvironment) {
-			((OptimizerPlanEnvironment) env).setPlan(streamGraph);
+			((OptimizerPlanEnvironment) env).setPlan(streamGraph);// 传入streamGraph
 		} else if (env instanceof PreviewPlanEnvironment) {
 			((PreviewPlanEnvironment) env).setPreview(streamGraph.getStreamingPlanAsJSON());
 		}

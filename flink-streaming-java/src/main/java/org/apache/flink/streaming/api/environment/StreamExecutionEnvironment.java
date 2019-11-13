@@ -1520,6 +1520,8 @@ public abstract class StreamExecutionEnvironment {
 	 * @return The result of the job execution, containing elapsed time and accumulators.
 	 * @throws Exception which occurs during job execution.
 	 */
+	// per-job 模式下执行StreamPlanEnvironment#execute，此时streamGraph已经生成
+	// yarn-session 模式下会走StreamContextEnvironment#excute
 	@Internal
 	public abstract JobExecutionResult execute(StreamGraph streamGraph) throws Exception;
 

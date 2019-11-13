@@ -129,6 +129,7 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	public KeyedStream(DataStream<T> dataStream, KeySelector<T, KEY> keySelector, TypeInformation<KEY> keyType) {
 		this(
 			dataStream,
+			// 创建PartitionTransformation，将来会生成虚拟的节点
 			new PartitionTransformation<>(
 				dataStream.getTransformation(),
 				new KeyGroupStreamPartitioner<>(keySelector, StreamGraphGenerator.DEFAULT_LOWER_BOUND_MAX_PARALLELISM)),
@@ -157,6 +158,7 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 		KeySelector<T, KEY> keySelector,
 		TypeInformation<KEY> keyType) {
 
+		// 将partitionTransformation传递给dataStream的transformation
 		super(stream.getExecutionEnvironment(), partitionTransformation);
 		this.keySelector = clean(keySelector);
 		this.keyType = validateKeyType(keyType);
@@ -261,6 +263,9 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	public <R> SingleOutputStreamOperator<R> transform(String operatorName,
 			TypeInformation<R> outTypeInfo, OneInputStreamOperator<T, R> operator) {
 
+		// 构建keyedStream时已经将partitionTransformation传递给super：DataStream
+		// 此时父类中的transformation已经是partitionTransformation
+		// 通过dataStream的transform，将partitionTransformation加入env的transformations
 		SingleOutputStreamOperator<R> returnStream = super.transform(operatorName, outTypeInfo, operator);
 
 		// inject the key selector and key type

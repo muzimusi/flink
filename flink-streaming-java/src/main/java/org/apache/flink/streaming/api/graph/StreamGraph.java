@@ -104,6 +104,7 @@ public class StreamGraph extends StreamingPlan {
 	private boolean blockingConnectionsBetweenChains;
 
 	private Map<Integer, StreamNode> streamNodes;
+	// source和sink需要特殊记录
 	private Set<Integer> sources;
 	private Set<Integer> sinks;
 	/**
@@ -326,6 +327,7 @@ public class StreamGraph extends StreamingPlan {
 			throw new RuntimeException("Duplicate vertexID " + vertexID);
 		}
 
+		// 用vertexClass指定执行的task类
 		StreamNode vertex = new StreamNode(
 			vertexID,
 			slotSharingGroup,
@@ -418,6 +420,7 @@ public class StreamGraph extends StreamingPlan {
 			throw new IllegalStateException("Already has virtual partition node with id " + virtualId);
 		}
 
+		// 记录虚拟节点的original节点
 		virtualPartitionNodes.put(virtualId, new Tuple3<>(originalId, partitioner, shuffleMode));
 	}
 
@@ -441,6 +444,7 @@ public class StreamGraph extends StreamingPlan {
 	}
 
 	public void addEdge(Integer upStreamVertexID, Integer downStreamVertexID, int typeNumber) {
+		// 在上下游节点（非虚拟节点）之间添加streamEdge
 		addEdgeInternal(upStreamVertexID,
 				downStreamVertexID,
 				typeNumber,
@@ -487,7 +491,8 @@ public class StreamGraph extends StreamingPlan {
 			StreamNode upstreamNode = getStreamNode(upStreamVertexID);
 			StreamNode downstreamNode = getStreamNode(downStreamVertexID);
 
-			// 上下有节点之间的partitioner策略
+			// 上下游节点之间的partitioner策略
+			// 根据并发度自定生成forwardPartitioner或者rebalancePartitioner
 			// If no partitioner was specified and the parallelism of upstream and downstream
 			// operator matches use forward partitioning, use rebalance otherwise.
 			if (partitioner == null && upstreamNode.getParallelism() == downstreamNode.getParallelism()) {
@@ -514,13 +519,13 @@ public class StreamGraph extends StreamingPlan {
 
 			// 创建streamEdge
 			// streamEdge包含内容：
-			// 1、两端node
-			// 2、分区partitioner
+			// 1、两端nStreamNode
+			// 2、分区方式partitioner
 			// 3、数据交换模式：shuffleMode
 			// 4、关于旁路输出，select等信息
 			StreamEdge edge = new StreamEdge(upstreamNode, downstreamNode, typeNumber, outputNames, partitioner, outputTag, shuffleMode);
 
-			// 指定streamNode出边入边
+			// 指定streamNode出边入边[edge连接上下游，上游指定出边，下游指定入边]
 			getStreamNode(edge.getSourceId()).addOutEdge(edge);
 			getStreamNode(edge.getTargetId()).addInEdge(edge);
 		}
@@ -719,10 +724,12 @@ public class StreamGraph extends StreamingPlan {
 		return iterationSourceSinkPairs;
 	}
 
+	// 返回边的source节点
 	public StreamNode getSourceVertex(StreamEdge edge) {
 		return streamNodes.get(edge.getSourceId());
 	}
 
+	// 返回边的target节点
 	public StreamNode getTargetVertex(StreamEdge edge) {
 		return streamNodes.get(edge.getTargetId());
 	}
@@ -748,6 +755,7 @@ public class StreamGraph extends StreamingPlan {
 	 * Gets the assembled {@link JobGraph} with a given job id.
 	 */
 	@SuppressWarnings("deprecation")
+	// StreamGraph调用StreamingJobGraphGenerator静态方法，传入streamGraph来创建JobGraph
 	@Override
 	public JobGraph getJobGraph(@Nullable JobID jobID) {
 		// temporarily forbid checkpointing for iterative jobs

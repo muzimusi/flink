@@ -61,6 +61,7 @@ public class DetachedEnvironment extends ContextEnvironment {
 		return this.lastJobExecutionResult;
 	}
 
+	// detached模式下，传入streamGraph
 	public void setDetachedPlan(FlinkPlan plan) {
 		if (detachedPlan == null) {
 			detachedPlan = plan;

@@ -1199,9 +1199,9 @@ public class DataStream<T> {
 
 		// 构建本次的transformation操作
 		OneInputTransformation<T, R> resultTransform = new OneInputTransformation<>(
-				this.transformation,// 1、记录上一次的transformation
+				this.transformation,// 1、记录上一次的transformation（上次/游）
 				operatorName,
-				operator,// 2、根据本次算子operator创建transformation
+				operator,// 2、根据本次算子operator创建transformation（本次）
 				outTypeInfo,
 				environment.getParallelism());
 

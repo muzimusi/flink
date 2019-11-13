@@ -193,6 +193,8 @@ public class CliFrontend {
 		final PackagedProgram program;
 		try {
 			LOG.info("Building program from JAR file");
+			// 解析用户提交的jar包中解析出用户代码，找到用户代码的main函数所在类
+			// 用户提交代码包含main函数时 PackagedProgram.Program = null
 			program = buildProgram(runOptions);
 		}
 		catch (FileNotFoundException e) {
@@ -221,9 +223,17 @@ public class CliFrontend {
 			final ClusterClient<T> client;
 
 			// directly deploy the job if the cluster is started in job mode and detached
+			// 只有加-d 或者 -yd才是per-job模式
+			// 【JobGraph创建时机】：CliFrontend => PackagedProgramUtils.createJobGraph
+			// 【job提交时机】：CliFrontend => AbstractYarnClusterDescriptor.startAppMaster，最终dispatcher会从工作目录加载jobGraph
+			// 【stream模式调用栈：】
+			// PackagedProgramUtils.createJobGraph -> optimizerPlanEnvironment.getOptimizedPlan
+			// -> PackageProgram.invokeInteractiveModeForExecution -> callMainMethod -> mainMethod.invoke
+			// -> StreamExecutionEnvironment.execute -> StreamPlanEnvironment.execute
 			if (clusterId == null && runOptions.getDetachedMode()) {
 				int parallelism = runOptions.getParallelism() == -1 ? defaultParallelism : runOptions.getParallelism();
 
+				// 从PackagedProgram中创建jobGraph
 				final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, configuration, parallelism);
 
 				final ClusterSpecification clusterSpecification = customCommandLine.getClusterSpecification(commandLine);
@@ -239,7 +249,7 @@ public class CliFrontend {
 				} catch (Exception e) {
 					LOG.info("Could not properly shut down the client.", e);
 				}
-			} else {
+			} else {// yarn-session模式
 				final Thread shutdownHook;
 				if (clusterId != null) {
 					client = clusterDescriptor.retrieve(clusterId);
@@ -270,6 +280,14 @@ public class CliFrontend {
 						userParallelism = defaultParallelism;
 					}
 
+					// yarn-session模式下生成jobGraph并提交job
+					// 该方法里会创建jobgraph，以及提交job
+					// 【Stream模式的调用栈】
+					// ClusterClient.run(PackagedProgram, int) -> PackageProgram.invokeInteractiveModeForExecution -> callMainMethod
+					// -> mainMethod.invoke -> StreamExecutionEnvironment.execute -> StreamContextEnvironment.execute
+					// -> ClusterClient.run(FlinkPlan, List, List, ClassLoader, SavepointRestoreSettings)
+					// -> getJobGraph -> JobGraphGenerator.compileJobGraph		【jobGraph生成时机】
+					// -> submitJob -> RestClusterClient.submitJob				【job提交时机】
 					executeProgram(program, client, userParallelism);
 				} finally {
 					if (clusterId == null && !client.isDetached()) {
@@ -776,6 +794,7 @@ public class CliFrontend {
 		List<URL> classpaths = options.getClasspaths();
 
 		// Get assembler class
+		// 用户代码的main函数所在类
 		String entryPointClass = options.getEntryPointClassName();
 		File jarFile = null;
 		if (options.isPython()) {

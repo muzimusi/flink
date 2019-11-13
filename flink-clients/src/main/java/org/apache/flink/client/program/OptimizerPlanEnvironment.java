@@ -81,7 +81,9 @@ public class OptimizerPlanEnvironment extends ExecutionEnvironment {
 
 		setAsContext();
 		try {
-			// 会执行用户提交程序的main方法，会执行env.execute() -> this.execute(jobName)
+			// per-job模式代码才会流转至此
+			// 会执行用户提交程序的main方法，会执行 env.execute()
+			// ru: stream模式 [streamEvn.execute => StreamPlanEnvironment#execute]
 			prog.invokeInteractiveModeForExecution();
 		}
 		catch (ProgramInvocationException e) {

@@ -202,6 +202,7 @@ public class PackagedProgram {
 		this.args = args == null ? new String[0] : args;
 
 		// if no entryPointClassName name was given, we try and look one up through the manifest
+		// 没有通过-c 指定入口类时，从manifest找
 		if (entryPointClassName == null) {
 			entryPointClassName = getEntryPointClassNameFromJar(jarFileUrl);
 		}
@@ -215,6 +216,7 @@ public class PackagedProgram {
 		this.mainClass = loadMainClass(entryPointClassName, userCodeClassLoader);
 
 		// if the entry point is a program, instantiate the class and get the plan
+		// 入口函数本身就是Flink program
 		if (Program.class.isAssignableFrom(this.mainClass)) {
 			Program prg = null;
 			try {
@@ -231,7 +233,9 @@ public class PackagedProgram {
 				throw new ProgramInvocationException("Error while trying to instantiate program class.", t);
 			}
 			this.program = prg;
-		} else if (hasMainMethod(mainClass)) {
+		}
+		// 入口函数只是拥有main方法的普通类
+		else if (hasMainMethod(mainClass)) {
 			this.program = null;
 		} else {
 			throw new ProgramInvocationException("The given program class neither has a main(String[]) method, nor does it implement the " +

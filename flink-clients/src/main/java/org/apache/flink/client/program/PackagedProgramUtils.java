@@ -59,6 +59,8 @@ public class PackagedProgramUtils {
 			@Nullable JobID jobID) throws ProgramInvocationException {
 		Thread.currentThread().setContextClassLoader(packagedProgram.getUserCodeClassLoader());
 		final Optimizer optimizer = new Optimizer(new DataStatistics(), new DefaultCostEstimator(), configuration);
+		// streamGraph -> streamingPlan -> FlinkPlan
+		// OptimizedPlan -> FlinkPlan
 		final FlinkPlan flinkPlan;
 
 		if (packagedProgram.isUsingProgramEntryPoint()) {
@@ -72,12 +74,14 @@ public class PackagedProgramUtils {
 			}
 
 			flinkPlan = optimizer.compile(jobWithJars.getPlan());
-		} else if (packagedProgram.isUsingInteractiveMode()) {
+		}
+		// 用户入口点是具有main函数的普通函数
+		else if (packagedProgram.isUsingInteractiveMode()) {
 			final OptimizerPlanEnvironment optimizerPlanEnvironment = new OptimizerPlanEnvironment(optimizer);
 
 			optimizerPlanEnvironment.setParallelism(defaultParallelism);
 
-			// 会调用用户program的main方法，会执行stream/batchEnv.execute()
+			// 会调用用户提交program的main方法，会执行stream/batchEnv.execute()
 			flinkPlan = optimizerPlanEnvironment.getOptimizedPlan(packagedProgram);
 		} else {
 			throw new ProgramInvocationException("PackagedProgram does not have a valid invocation mode.");

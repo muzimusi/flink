@@ -147,6 +147,7 @@ public class StreamingJobGraphGenerator {
 
 		// Generate deterministic hashes for the nodes in order to identify them across
 		// submission if they didn't change.
+		// 给每个streamNode生成一个hash值，hash值会作为JobVertexId
 		Map<Integer, byte[]> hashes = defaultStreamGraphHasher.traverseStreamGraphAndGenerateHashes(streamGraph);
 
 		// Generate legacy version hashes for backwards compatibility

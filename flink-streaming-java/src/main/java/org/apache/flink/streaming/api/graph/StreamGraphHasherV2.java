@@ -74,16 +74,22 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 	 *
 	 * @return A map from {@link StreamNode#id} to hash as 16-byte array.
 	 */
+	// 遍历StreamGraph，根据用户指定的Uid或者使用flink特定的策略来生成hash
+	// 生成策略：
+	// 1、节点自身属性
+	// 2、可以chain在一起的下游节点
+	// 3、上游节点
 	@Override
 	public Map<Integer, byte[]> traverseStreamGraphAndGenerateHashes(StreamGraph streamGraph) {
 		// The hash function used to generate the hash
 		final HashFunction hashFunction = Hashing.murmur3_128(0);
 		final Map<Integer, byte[]> hashes = new HashMap<>();
 
+		// 辅助空间
 		Set<Integer> visited = new HashSet<>();
 		Queue<StreamNode> remaining = new ArrayDeque<>();
 
-		// 根据id大小对souce节点排序
+		// 根据id大小对source节点排序，【多source节点时，每次获取的source ids顺序不固定】
 		// We need to make the source order deterministic. The source IDs are
 		// not returned in the same order, which means that submitting the same
 		// program twice might result in different traversal, which breaks the
@@ -98,7 +104,7 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 		// 辅助空间： 1、辅助队列remaining 2、标记集合visited
 		// 步骤：
 		// 1.第一层为source节点，加入remaining队列，从队首开始遍历
-		// 2.每次遍历后移除队首元素并进行mark，若队首元素存在outPut节点，将加油节点加入remaining队列
+		// 2.每次遍历后移除队首元素并进行mark，若队首元素存在outPut节点，将剩余节点加入remaining队列
 		// 重复1-2步，知道全部元素遍历
 
 		//
@@ -107,19 +113,24 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 		//
 
 		// Start with source nodes
+		// source节点作为第一层开始遍历
 		for (Integer sourceNodeId : sources) {
 			remaining.add(streamGraph.getStreamNode(sourceNodeId));
 			visited.add(sourceNodeId);
 		}
 
+		// 开始出队并检测
 		StreamNode currentNode;
 		while ((currentNode = remaining.poll()) != null) {
 			// Generate the hash code. Because multiple path exist to each
 			// node, we might not have all required inputs available to
 			// generate the hash code.
+			// 为当前遍历节点生成hash值，【hash生成策略】
 			if (generateNodeHash(currentNode, hashFunction, hashes, streamGraph.isChainingEnabled(), streamGraph)) {
 				// Add the child nodes
+				// 当前节点可能有很多出边 【streamEdge包含SourceId和targetId】
 				for (StreamEdge outEdge : currentNode.getOutEdges()) {
+					// 当前节点是边的source，拿到边的target节点
 					StreamNode child = streamGraph.getTargetVertex(outEdge);
 
 					if (!visited.contains(child.getId())) {
@@ -127,7 +138,7 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 						visited.add(child.getId());
 					}
 				}
-			} else {
+			} else {//当前节点有上游节点还有没生成hash，或者当前节点hash生成失败
 				// We will revisit this later.
 				visited.remove(currentNode.getId());
 			}
@@ -157,12 +168,12 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 			StreamGraph streamGraph) {
 
 		// Check for user-specified ID
-		// 检查用户是否手动为该算子设置UUID
+		// 检查用户是否手动为该算子设置UID
 		String userSpecifiedHash = node.getTransformationUID();
 
-		// 用户没有手动自定uuid
-		// 节点生成hash值的前提：其所有input节点均已经生成hash值
-		// 因为，节点的hash值生成策略要兼顾node-local properties and input and output edges.
+		// 没有手动指定uid
+		// 根据生成策略进行校验 【因为，节点的hash值生成策略要兼顾node-local properties and input and output edges.】
+		// 	1、节点生成hash值的前提：其所有input节点均已经生成hash值
 		if (userSpecifiedHash == null) {
 			// Check that all input nodes have their hashes computed
 			for (StreamEdge inEdge : node.getInEdges()) {
@@ -175,7 +186,7 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 			}
 
 			Hasher hasher = hashFunction.newHasher();
-			// 兼顾node-local properties and input and output edges
+			// 兼顾 node-local properties and input and output edges
 			byte[] hash = generateDeterministicHash(node, hasher, hashes, isChainingEnabled, streamGraph);
 
 			if (hashes.put(node.getId(), hash) != null) {
@@ -237,6 +248,7 @@ public class StreamGraphHasherV2 implements StreamGraphHasher {
 
 		// Include chained nodes to hash
 		for (StreamEdge outEdge : node.getOutEdges()) {
+			// 判断能不能和下游节点chain在一起
 			if (isChainable(outEdge, isChainingEnabled, streamGraph)) {
 
 				// Use the hash size again, because the nodes are chained to
