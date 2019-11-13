@@ -75,7 +75,7 @@ public class PackagedProgramUtils {
 
 			flinkPlan = optimizer.compile(jobWithJars.getPlan());
 		}
-		// 用户入口点是具有main函数的普通函数
+		// 用户入口点是具有main函数的普通类
 		else if (packagedProgram.isUsingInteractiveMode()) {
 			final OptimizerPlanEnvironment optimizerPlanEnvironment = new OptimizerPlanEnvironment(optimizer);
 

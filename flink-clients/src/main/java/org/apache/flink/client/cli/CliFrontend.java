@@ -194,7 +194,7 @@ public class CliFrontend {
 		try {
 			LOG.info("Building program from JAR file");
 			// 解析用户提交的jar包中解析出用户代码，找到用户代码的main函数所在类
-			// 用户提交代码包含main函数时 PackagedProgram.Program = null
+			// 用户提交代码包含main函数的普通类时: PackagedProgram.Program = null
 			program = buildProgram(runOptions);
 		}
 		catch (FileNotFoundException e) {

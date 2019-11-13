@@ -222,12 +222,16 @@ public class StreamingJobGraphGenerator {
 
 			List<StreamEdge> transitiveOutEdges = new ArrayList<StreamEdge>();
 
+			// 标记: edge两端节点可以chained
 			List<StreamEdge> chainableOutputs = new ArrayList<StreamEdge>();
 			List<StreamEdge> nonChainableOutputs = new ArrayList<StreamEdge>();
 
+			// 当前节点
 			StreamNode currentNode = streamGraph.getStreamNode(currentNodeId);
 
+			// 当前节点的全部出边:[edge的sourceId是currentNodeId]
 			for (StreamEdge outEdge : currentNode.getOutEdges()) {
+				// 当前节点和下游节点能不能chain在一起
 				if (isChainable(outEdge, streamGraph)) {
 					chainableOutputs.add(outEdge);
 				} else {
@@ -235,13 +239,19 @@ public class StreamingJobGraphGenerator {
 				}
 			}
 
+			// chainableOutputs里保存的节点都是能和currentNode chain在一起
+			// chainable节点可以与当前节点chain在一起，所有要继续往下看该chainable节点是否还能和他的下游chain起来
+			// 使chain链条不断变长
 			for (StreamEdge chainable : chainableOutputs) {
 				transitiveOutEdges.addAll(
+					    // 链的开头节点不能变，仍然保持为startNodeId
 						createChain(startNodeId, chainable.getTargetId(), hashes, legacyHashes, chainIndex + 1, chainedOperatorHashes));
 			}
 
+			// nonChainableOutputs里保存的节点都不能可currentNode chain在一起，但是不排除从该节点生成chain链条的可能
 			for (StreamEdge nonChainable : nonChainableOutputs) {
 				transitiveOutEdges.add(nonChainable);
+				// 从该nonChainable节点去寻找chain
 				createChain(nonChainable.getTargetId(), nonChainable.getTargetId(), hashes, legacyHashes, 0, chainedOperatorHashes);
 			}
 
@@ -402,6 +412,7 @@ public class StreamingJobGraphGenerator {
 
 		jobVertex.setResources(chainedMinResources.get(streamNodeId), chainedPreferredResources.get(streamNodeId));
 
+		// 算子具体的执行类
 		jobVertex.setInvokableClass(streamNode.getJobVertexClass());
 
 		int parallelism = streamNode.getParallelism();
@@ -555,6 +566,16 @@ public class StreamingJobGraphGenerator {
 		StreamOperatorFactory<?> headOperator = upStreamVertex.getOperatorFactory();
 		StreamOperatorFactory<?> outOperator = downStreamVertex.getOperatorFactory();
 
+		// chain条件判断
+		// 1、下游节点只有一直上游输入
+		// 2、两端算子不为空
+		// 3、两端算子有相同的slotShareGroup
+		// 4、下游算子的chain策略为ALWAYS
+		// 5、上游算子的chain策略为HEAD或ALWAYS
+		// 6、两节点之前的edge partition为Forward
+		// 7、edge shuffleMode不是batch
+		// 8、两个算子的并行度相同
+		// 9、开起允许Chain配置
 		return downStreamVertex.getInEdges().size() == 1
 				&& outOperator != null
 				&& headOperator != null
