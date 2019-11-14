@@ -236,6 +236,7 @@ public class JobVertex implements java.io.Serializable {
 		return this.configuration;
 	}
 
+	// 由StreamNodeJobVertexClass指定 jobVertex.setInvokableClass(streamNode.getJobVertexClass());
 	public void setInvokableClass(Class<? extends AbstractInvokable> invokable) {
 		Preconditions.checkNotNull(invokable);
 		this.invokableClassName = invokable.getName();
@@ -454,6 +455,7 @@ public class JobVertex implements java.io.Serializable {
 			IntermediateDataSetID id,
 			ResultPartitionType partitionType) {
 
+		// IntermediateDataSet持有jobVertex引用，用于向下游发数据
 		IntermediateDataSet result = new IntermediateDataSet(id, partitionType, this);
 		this.results.add(result);
 		return result;
@@ -467,12 +469,15 @@ public class JobVertex implements java.io.Serializable {
 	}
 
 	public JobEdge connectNewDataSetAsInput(
-			JobVertex input,
+			JobVertex input, //上游节点：input，下游节点：this
 			DistributionPattern distPattern,
 			ResultPartitionType partitionType) {
 
+		// 上游节点创建IntermediateDataSet
 		IntermediateDataSet dataSet = input.createAndAddResultDataSet(partitionType);
 
+		// 连边
+		// IntermediateDataSet -> JobEdge -> jobVertex
 		JobEdge edge = new JobEdge(dataSet, this, distPattern);
 		this.inputs.add(edge);
 		dataSet.addConsumer(edge);

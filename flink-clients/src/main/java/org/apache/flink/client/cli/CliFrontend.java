@@ -127,6 +127,7 @@ public class CliFrontend {
 
 		this.customCommandLineOptions = new Options();
 
+		// 会传入flinkYarnSessionCLI
 		for (CustomCommandLine<?> customCommandLine : customCommandLines) {
 			customCommandLine.addGeneralOptions(customCommandLineOptions);
 			customCommandLine.addRunOptions(customCommandLineOptions);
@@ -201,6 +202,7 @@ public class CliFrontend {
 			throw new CliArgsException("Could not build the program from JAR file.", e);
 		}
 
+		// yarn模式下会选择FlinkYarnSessionCLI
 		final CustomCommandLine<?> customCommandLine = getActiveCustomCommandLine(commandLine);
 
 		try {
@@ -1088,6 +1090,7 @@ public class CliFrontend {
 		final Configuration configuration = GlobalConfiguration.loadConfiguration(configurationDirectory);
 
 		// 3. load the custom command lines
+		// 使用flinkYarnSessionCLI解析命令行参数
 		final List<CustomCommandLine<?>> customCommandLines = loadCustomCommandLines(
 			configuration,
 			configurationDirectory);

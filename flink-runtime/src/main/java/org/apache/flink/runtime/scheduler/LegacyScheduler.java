@@ -100,8 +100,10 @@ public class LegacyScheduler implements SchedulerNG {
 
 	private final Logger log;
 
+	// 持有jobGraph
 	private final JobGraph jobGraph;
 
+	// 调度器创建或从savepoint中恢复executionGraph，并持有引用
 	private final ExecutionGraph executionGraph;
 
 	private final BackPressureStatsTracker backPressureStatsTracker;
@@ -173,14 +175,19 @@ public class LegacyScheduler implements SchedulerNG {
 		this.blobWriter = checkNotNull(blobWriter);
 		this.slotRequestTimeout = checkNotNull(slotRequestTimeout);
 
+		// jobGraph -> executionGraph
 		this.executionGraph = createAndRestoreExecutionGraph(jobManagerJobMetricGroup, checkNotNull(shuffleMaster), checkNotNull(partitionTracker));
 	}
 
+	// 作用:
+	// 1 创建executionGraph
+	// 2 从save中恢复executionGraph
 	private ExecutionGraph createAndRestoreExecutionGraph(
 			JobManagerJobMetricGroup currentJobManagerJobMetricGroup,
 			ShuffleMaster<?> shuffleMaster,
 			PartitionTracker partitionTracker) throws Exception {
 
+		// 根据jobGraph闯建executionGraph
 		ExecutionGraph newExecutionGraph = createExecutionGraph(currentJobManagerJobMetricGroup, shuffleMaster, partitionTracker);
 
 		final CheckpointCoordinator checkpointCoordinator = newExecutionGraph.getCheckpointCoordinator();
@@ -204,6 +211,7 @@ public class LegacyScheduler implements SchedulerNG {
 			JobManagerJobMetricGroup currentJobManagerJobMetricGroup,
 			ShuffleMaster<?> shuffleMaster,
 			final PartitionTracker partitionTracker) throws JobExecutionException, JobException {
+		// Utility class
 		return ExecutionGraphBuilder.buildGraph(
 			null,
 			jobGraph,

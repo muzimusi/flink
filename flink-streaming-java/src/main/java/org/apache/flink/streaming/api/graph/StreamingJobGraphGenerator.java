@@ -158,6 +158,7 @@ public class StreamingJobGraphGenerator {
 
 		Map<Integer, List<Tuple2<byte[], byte[]>>> chainedOperatorHashes = new HashMap<>();
 
+		// 生成JobVertex，jobEdge，并进行chain操作
 		setChaining(hashes, legacyHashes, chainedOperatorHashes);
 
 		setPhysicalEdges();
@@ -186,6 +187,7 @@ public class StreamingJobGraphGenerator {
 		for (StreamEdge edge : physicalEdgesInOrder) {
 			int target = edge.getTargetId();
 
+			//节点及其入边
 			List<StreamEdge> inEdges = physicalInEdgesInOrder.computeIfAbsent(target, k -> new ArrayList<>());
 
 			inEdges.add(edge);
@@ -210,6 +212,14 @@ public class StreamingJobGraphGenerator {
 		}
 	}
 
+	// streamGraph -> jobGraph
+	// 一句话概括：
+	// 首先，通过streamGraph.getSourceIDs()拿到source节点集合，紧接着依次从source节点开始遍历，判断StreamNode Chain，
+	// 递归创建JobVertex，所以，其真正的处理顺序其实是从sink开始的。然后通过connect()遍历当前节点的物理出边transitiveOutEdges集合，创建JobEdge，
+	// 建立当前节点与下游节点的联系，即JobVertex与IntermediateDataSet之间。
+
+	// startNodeId: chain的开始节点
+	// currentNodeId: 从当前节点开始往下游节点做chain
 	private List<StreamEdge> createChain(
 			Integer startNodeId,
 			Integer currentNodeId,
@@ -220,6 +230,7 @@ public class StreamingJobGraphGenerator {
 
 		if (!builtVertices.contains(startNodeId)) {
 
+			// 能够chain在一的节点之间是不需要edge来连接，transitiveOutEdges保存的边最终会连接node
 			List<StreamEdge> transitiveOutEdges = new ArrayList<StreamEdge>();
 
 			// 标记: edge两端节点可以chained
@@ -239,6 +250,8 @@ public class StreamingJobGraphGenerator {
 				}
 			}
 
+			// 以下逻辑：1、新节点若可以加入当前链，则加入，当前链头结点不变；2、若不能加入当前链，则把新节点作为新链的头结点开始向后判断
+
 			// chainableOutputs里保存的节点都是能和currentNode chain在一起
 			// chainable节点可以与当前节点chain在一起，所有要继续往下看该chainable节点是否还能和他的下游chain起来
 			// 使chain链条不断变长
@@ -248,13 +261,14 @@ public class StreamingJobGraphGenerator {
 						createChain(startNodeId, chainable.getTargetId(), hashes, legacyHashes, chainIndex + 1, chainedOperatorHashes));
 			}
 
-			// nonChainableOutputs里保存的节点都不能可currentNode chain在一起，但是不排除从该节点生成chain链条的可能
+			// nonChainableOutputs里保存的节点都不能可currentNode chain在一起，但是不排除从该节点继续向后生成chain链条的可能
 			for (StreamEdge nonChainable : nonChainableOutputs) {
 				transitiveOutEdges.add(nonChainable);
-				// 从该nonChainable节点去寻找chain
+				// 新节点作为将链条头结点，从该nonChainable(新链头)节点去寻找chain
 				createChain(nonChainable.getTargetId(), nonChainable.getTargetId(), hashes, legacyHashes, 0, chainedOperatorHashes);
 			}
 
+			// 链的第一个节点的id作为key
 			List<Tuple2<byte[], byte[]>> operatorHashes =
 				chainedOperatorHashes.computeIfAbsent(startNodeId, k -> new ArrayList<>());
 
@@ -262,6 +276,7 @@ public class StreamingJobGraphGenerator {
 			OperatorID currentOperatorId = new OperatorID(primaryHashBytes);
 
 			for (Map<Integer, byte[]> legacyHash : legacyHashes) {
+				// 两个hash值
 				operatorHashes.add(new Tuple2<>(primaryHashBytes, legacyHash.get(currentNodeId)));
 			}
 
@@ -291,6 +306,7 @@ public class StreamingJobGraphGenerator {
 				config.setOutEdgesInOrder(transitiveOutEdges);
 				config.setOutEdges(streamGraph.getStreamNode(currentNodeId).getOutEdges());
 
+				// 创建jobEdge连接上下游
 				for (StreamEdge edge : transitiveOutEdges) {
 					connect(startNodeId, edge);
 				}
@@ -370,6 +386,7 @@ public class StreamingJobGraphGenerator {
 					"Did you generate them before calling this method?");
 		}
 
+		// streamNode的hash值作为jobVertexId
 		JobVertexID jobVertexId = new JobVertexID(hash);
 
 		List<JobVertexID> legacyJobVertexIds = new ArrayList<>(legacyHashes.size());
@@ -386,7 +403,7 @@ public class StreamingJobGraphGenerator {
 		if (chainedOperators != null) {
 			for (Tuple2<byte[], byte[]> chainedOperator : chainedOperators) {
 				chainedOperatorVertexIds.add(new OperatorID(chainedOperator.f0));
-				userDefinedChainedOperatorVertexIds.add(chainedOperator.f1 != null ? new OperatorID(chainedOperator.f1) : null);
+				userDefinedChainedOperatorVertexIds.add(chainedOperator.f1 != null ? new OperatorID(chainedOperator.f1) : null);//有可能是null
 			}
 		}
 
@@ -410,6 +427,7 @@ public class StreamingJobGraphGenerator {
 					userDefinedChainedOperatorVertexIds);
 		}
 
+		// cpu memory等资源
 		jobVertex.setResources(chainedMinResources.get(streamNodeId), chainedPreferredResources.get(streamNodeId));
 
 		// 算子具体的执行类
@@ -506,6 +524,7 @@ public class StreamingJobGraphGenerator {
 		vertexConfigs.put(vertexID, config);
 	}
 
+	// 创建jobEdge连接上下游
 	private void connect(Integer headOfChain, StreamEdge edge) {
 
 		physicalEdgesInOrder.add(edge);
@@ -521,6 +540,13 @@ public class StreamingJobGraphGenerator {
 
 		StreamPartitioner<?> partitioner = edge.getPartitioner();
 
+		// 通过streamEdge的shuffleMode来确定resultPartitionType，会影响算子恢复时的效率
+		// ShuffleMode:
+		// 		PIPELINED producer和consumer同时启动
+		// 		BATCH     第一个producer产生全部结果是，consumer才会启动
+		// ResultPartitionType:
+		// 		PIPELINED_BOUNDED
+		// 		BLOCKING
 		ResultPartitionType resultPartitionType;
 		switch (edge.getShuffleMode()) {
 			case PIPELINED:
@@ -540,9 +566,10 @@ public class StreamingJobGraphGenerator {
 
 		JobEdge jobEdge;
 		if (partitioner instanceof ForwardPartitioner || partitioner instanceof RescalePartitioner) {
+			// 创建jobEdge链接IntermediateDataSet和jobVertex
 			jobEdge = downStreamVertex.connectNewDataSetAsInput(
 				headVertex,
-				DistributionPattern.POINTWISE,
+				DistributionPattern.POINTWISE, //决定上下游算子是一对一连接，还是可以一（produce）对多（consumer）连接，当前1:n
 				resultPartitionType);
 		} else {
 			jobEdge = downStreamVertex.connectNewDataSetAsInput(

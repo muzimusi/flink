@@ -66,6 +66,7 @@ public class JobManagerRunner implements LeaderContender, OnCompletionActions, A
 	private final Object lock = new Object();
 
 	/** The job graph needs to run. */
+	// JobManagerRunner持有jobGraph
 	private final JobGraph jobGraph;
 
 	/** Used to check whether a job needs to be run. */
@@ -116,6 +117,7 @@ public class JobManagerRunner implements LeaderContender, OnCompletionActions, A
 
 		// make sure we cleanly shut down out JobManager services if initialization fails
 		try {
+			// JobManagerRunner持有jobGraph
 			this.jobGraph = checkNotNull(jobGraph);
 			this.libraryCacheManager = checkNotNull(libraryCacheManager);
 			this.executor = checkNotNull(executor);
@@ -182,6 +184,7 @@ public class JobManagerRunner implements LeaderContender, OnCompletionActions, A
 		}
 	}
 
+	// jobmanager关闭动作
 	@Override
 	public CompletableFuture<Void> closeAsync() {
 		synchronized (lock) {

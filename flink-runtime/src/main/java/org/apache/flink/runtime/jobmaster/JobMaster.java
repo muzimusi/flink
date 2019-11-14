@@ -133,6 +133,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 
 	private final ResourceID resourceId;
 
+	// jobMaster持有jobGraph
 	private final JobGraph jobGraph;
 
 	private final Time rpcTimeout;
@@ -224,7 +225,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 
 		this.jobMasterConfiguration = checkNotNull(jobMasterConfiguration);
 		this.resourceId = checkNotNull(resourceId);
-		this.jobGraph = checkNotNull(jobGraph);
+		this.jobGraph = checkNotNull(jobGraph);//// jobMaster持有jobGraph
 		this.rpcTimeout = jobMasterConfiguration.getRpcTimeout();
 		this.highAvailabilityServices = checkNotNull(highAvailabilityService);
 		this.blobWriter = jobManagerSharedServices.getBlobWriter();
@@ -262,6 +263,8 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 
 		this.shuffleMaster = checkNotNull(shuffleMaster);
 
+		// jobGraph在创建调度计划时候转换成executionGraph
+		// jobManagerJobMetricGroup representing everything belonging to a specific job, running on the JobManager
 		this.jobManagerJobMetricGroup = jobMetricGroupFactory.create(jobGraph);
 		this.schedulerNG = createScheduler(jobManagerJobMetricGroup);
 		this.jobStatusListener = null;

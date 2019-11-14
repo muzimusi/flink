@@ -100,6 +100,8 @@ public class ExecutionGraphBuilder {
 			ShuffleMaster<?> shuffleMaster,
 			PartitionTracker partitionTracker) throws JobExecutionException, JobException {
 
+		// task失败恢复策略
+		// 1.9默认配置：jobmanager.execution.failover-strategy: region
 		final FailoverStrategy.Factory failoverStrategy =
 			FailoverStrategyLoader.loadFailoverStrategy(jobManagerConfig, log);
 
@@ -180,7 +182,7 @@ public class ExecutionGraphBuilder {
 					partitionReleaseStrategyFactory,
 					shuffleMaster,
 					partitionTracker,
-					jobGraph.getScheduleMode(),
+					jobGraph.getScheduleMode(), // 调度模式
 					jobGraph.getAllowQueuedScheduling());
 		} catch (IOException e) {
 			throw new JobException("Could not create the ExecutionGraph.", e);
@@ -204,6 +206,7 @@ public class ExecutionGraphBuilder {
 		log.info("Running initialization on master for job {} ({}).", jobName, jobId);
 
 		for (JobVertex vertex : jobGraph.getVertices()) {
+			// StreamNode JobVertexClass指定的类
 			String executableClass = vertex.getInvokableClassName();
 			if (executableClass == null || executableClass.isEmpty()) {
 				throw new JobSubmissionException(jobId,
@@ -211,6 +214,8 @@ public class ExecutionGraphBuilder {
 			}
 
 			try {
+				// 调用InputOutputFormatVertex.initializeOnMaster
+				// [InputOutputFormatVertex :A task vertex that runs an initialization and a finalization on the master.]
 				vertex.initializeOnMaster(classLoader);
 			}
 			catch (Throwable t) {
@@ -223,10 +228,13 @@ public class ExecutionGraphBuilder {
 				(System.nanoTime() - initMasterStart) / 1_000_000);
 
 		// topologically sort the job vertices and attach the graph to the existing one
+		// 对JobGraph中的JobVertex节点进行拓扑排序，得到List<JobVertex>
 		List<JobVertex> sortedTopology = jobGraph.getVerticesSortedTopologicallyFromSources();
 		if (log.isDebugEnabled()) {
 			log.debug("Adding {} vertices from job graph {} ({}).", sortedTopology.size(), jobName, jobId);
 		}
+		// 转化生成executeGraph
+		//构建ExecutionGraph的核心方法
 		executionGraph.attachJobGraph(sortedTopology);
 
 		if (log.isDebugEnabled()) {
