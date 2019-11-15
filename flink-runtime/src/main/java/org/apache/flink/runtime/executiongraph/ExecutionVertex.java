@@ -78,8 +78,14 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 	private final ExecutionJobVertex jobVertex;
 
+	// 输出 IntermediateResultPartition
+	// ExecutionVertex会有多个输出
 	private final Map<IntermediateResultPartitionID, IntermediateResultPartition> resultPartitions;
 
+	// 输入
+	// ExecutionJobVertex会有多个上游IntermediateResult
+	// ExecutionVertex会从多个上游IntermediateResult中的IntermediateResultPartition中消费数据
+	// inputEdges用来记录ExecutionEdge消费哪个IntermediateResult的哪个IntermediateResultPartition
 	private final ExecutionEdge[][] inputEdges;
 
 	private final int subTaskIndex;
@@ -151,13 +157,18 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 		this.resultPartitions = new LinkedHashMap<>(producedDataSets.length, 1);
 
+		// 创建ExecutionVertex的输出
 		for (IntermediateResult result : producedDataSets) {
+			// 创建ExecutionVertex的输出IntermediateResultPartition
 			IntermediateResultPartition irp = new IntermediateResultPartition(result, this, subTaskIndex);
+			// 将IntermediateResultPartition归档于IntermediateResult
 			result.setPartition(subTaskIndex, irp);
 
 			resultPartitions.put(irp.getPartitionId(), irp);
 		}
 
+		// 创建ExecutionVertex的输入数组
+		// 一个JobVertex会有多个IntermediateDataSet输出，每个IntermediateDataSet对应一个IntermediateResult
 		this.inputEdges = new ExecutionEdge[jobVertex.getJobVertex().getInputs().size()][];
 
 		this.priorExecutions = new EvictingBoundedList<>(maxPriorExecutionHistoryLength);
@@ -369,9 +380,14 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 	//  Graph building
 	// --------------------------------------------------------------------------------------------
 
+	// IntermediateResultPartition -> ExecutionEdge -> ExecutionVertex
+	// 			source			   -> ExecutionEdge ->     target
+	// 遍历ExecutionJobVertex逻辑上游IntermediateResult中的IntermediateResultPartition并与与当前ExecutionVertex进行连接
 	public void connectSource(int inputNumber, IntermediateResult source, JobEdge edge, int consumerNumber) {
 
+		// 连接模式
 		final DistributionPattern pattern = edge.getDistributionPattern();
+		// ExecutionVertex的上游IntermediateResultPartition
 		final IntermediateResultPartition[] sourcePartitions = source.getPartitions();
 
 		ExecutionEdge[] edges;
@@ -390,11 +406,15 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 		}
 
+		// 创建ExecutionVertex时已经初始化
+		// ExecutionVertex会有多个上游，需要从多个IntermediateResult的IntermediateResultPartition中消费数据
+		// inputEdges用来表明ExecutionEdge消费哪个IntermediateResult的哪个IntermediateResultPartition
 		inputEdges[inputNumber] = edges;
 
 		// add the consumers to the source
 		// for now (until the receiver initiated handshake is in place), we need to register the
 		// edges as the execution graph
+		// IntermediateResultPartition维护一份下游ExecutionEdge集合
 		for (ExecutionEdge ee : edges) {
 			ee.getSource().addConsumer(ee, consumerNumber);
 		}
@@ -405,6 +425,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 		for (int i = 0; i < sourcePartitions.length; i++) {
 			IntermediateResultPartition irp = sourcePartitions[i];
+			// IntermediateResultPartition -> ExecutionEdge -> ExecutionVertex
+			// 			source			   -> ExecutionEdge ->     target
 			edges[i] = new ExecutionEdge(irp, this, inputNumber);
 		}
 
@@ -412,13 +434,17 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 	}
 
 	private ExecutionEdge[] connectPointwise(IntermediateResultPartition[] sourcePartitions, int inputNumber) {
+		// source的partition数
 		final int numSources = sourcePartitions.length;
+		// 下游算子的并发数
 		final int parallelism = getTotalNumberOfParallelSubtasks();
 
 		// simple case same number of sources as targets
+		// 上游partition数等于下游算子并发数
 		if (numSources == parallelism) {
 			return new ExecutionEdge[] { new ExecutionEdge(sourcePartitions[subTaskIndex], this, inputNumber) };
 		}
+		// 上游partition数小于下游算子并发数
 		else if (numSources < parallelism) {
 
 			int sourcePartition;
@@ -438,6 +464,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
 			return new ExecutionEdge[] { new ExecutionEdge(sourcePartitions[sourcePartition], this, inputNumber) };
 		}
+		// 上游partition数大于下游算子并发数
 		else {
 			if (numSources % parallelism == 0) {
 				// same number of targets per source

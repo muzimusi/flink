@@ -161,6 +161,7 @@ public class LegacyScheduler implements SchedulerNG {
 		this.checkpointRecoveryFactory = checkNotNull(checkpointRecoveryFactory);
 		this.rpcTimeout = checkNotNull(rpcTimeout);
 
+		// 为JobGraph配置重启策略
 		final RestartStrategies.RestartStrategyConfiguration restartStrategyConfiguration =
 			jobGraph.getSerializedExecutionConfig()
 				.deserializeValue(userCodeLoader)

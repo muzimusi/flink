@@ -357,7 +357,7 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 		jobManagerRunnerFutures.put(jobGraph.getJobID(), jobManagerRunnerFuture);
 
 		return jobManagerRunnerFuture
-			.thenApply(FunctionUtils.uncheckedFunction(this::startJobManagerRunner))
+			.thenApply(FunctionUtils.uncheckedFunction(this::startJobManagerRunner))// 至此ExecutionGraph已经形成
 			.thenApply(FunctionUtils.nullFn())
 			.whenCompleteAsync(
 				(ignored, throwable) -> {

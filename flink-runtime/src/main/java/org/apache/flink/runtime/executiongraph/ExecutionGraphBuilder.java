@@ -227,6 +227,7 @@ public class ExecutionGraphBuilder {
 		log.info("Successfully ran initialization on master in {} ms.",
 				(System.nanoTime() - initMasterStart) / 1_000_000);
 
+		// 构建有序拓扑列表
 		// topologically sort the job vertices and attach the graph to the existing one
 		// 对JobGraph中的JobVertex节点进行拓扑排序，得到List<JobVertex>
 		List<JobVertex> sortedTopology = jobGraph.getVerticesSortedTopologicallyFromSources();
@@ -234,7 +235,7 @@ public class ExecutionGraphBuilder {
 			log.debug("Adding {} vertices from job graph {} ({}).", sortedTopology.size(), jobName, jobId);
 		}
 		// 转化生成executeGraph
-		//构建ExecutionGraph的核心方法
+		// 构建ExecutionGraph的核心方法
 		executionGraph.attachJobGraph(sortedTopology);
 
 		if (log.isDebugEnabled()) {

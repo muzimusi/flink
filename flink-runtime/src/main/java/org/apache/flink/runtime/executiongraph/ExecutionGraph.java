@@ -212,6 +212,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	private final List<ExecutionJobVertex> verticesInCreationOrder;
 
 	/** All intermediate results that are part of this graph. */
+	// IntermediateDataSet : IntermediateResult <=> 1:1
 	private final ConcurrentHashMap<IntermediateDataSetID, IntermediateResult> intermediateResults;
 
 	/** The currently executed tasks, for callbacks. */
@@ -885,6 +886,13 @@ public class ExecutionGraph implements AccessExecutionGraph {
 	//  Actions
 	// --------------------------------------------------------------------------------------------
 
+	/**
+	 * 在此操作之前节点已经完成拓扑排序
+	 *
+	 * 依次遍历排好序的JobVertex集合，并构建相应的ExecutionJobVertex实例，并设置ExecutionGraph中的部分属性。
+	 * 在ExecutionJobVertex的构造函数中，会根据并行度，构造相应的ExecutionVertex数组，该数组的索引就是子任务的索引号；
+	 * 在ExecutionVertex的构造函数中，会构造出一个Execution实例。
+	 */
 	public void attachJobGraph(List<JobVertex> topologiallySorted) throws JobException {
 
 		assertRunningInJobMasterMainThread();
@@ -898,13 +906,18 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		final ArrayList<ExecutionJobVertex> newExecJobVertices = new ArrayList<>(topologiallySorted.size());
 		final long createTimestamp = System.currentTimeMillis();
 
+		// 依次按照顺序遍历排好序的JobVertex集合
 		for (JobVertex jobVertex : topologiallySorted) {
 
+			// source节点
+			// 对于ExecutionGraph来说，只要有一个不能停止的输入源JobVertex，那ExecutionGraph就是不可停止的
 			if (jobVertex.isInputVertex() && !jobVertex.isStoppable()) {
 				this.isStoppable = false;
 			}
 
 			// create the execution job vertex and attach it to the graph
+			// 创建jobVertex对应的ExecutionJobVertex，默认并行度: 1
+			// 内部创建IntermediateResult，ExecutionVertex
 			ExecutionJobVertex ejv = new ExecutionJobVertex(
 					this,
 					jobVertex,
@@ -914,6 +927,8 @@ public class ExecutionGraph implements AccessExecutionGraph {
 					globalModVersion,
 					createTimestamp);
 
+			// 至此已经创建好IntermediateResult；ExecutionJobVertex；inputEdges，ExecutionVertex，IntermediateResultPartition
+			// 开始连边，进行构图
 			ejv.connectToPredecessors(this.intermediateResults);
 
 			ExecutionJobVertex previousTask = this.tasks.putIfAbsent(jobVertex.getID(), ejv);
@@ -930,7 +945,9 @@ public class ExecutionGraph implements AccessExecutionGraph {
 				}
 			}
 
+			// 将ejv按创建顺序记录下来
 			this.verticesInCreationOrder.add(ejv);
+			// 统计所有ejv的并行度
 			this.numVerticesTotal += ejv.getParallelism();
 			newExecJobVertices.add(ejv);
 		}
@@ -949,6 +966,7 @@ public class ExecutionGraph implements AccessExecutionGraph {
 
 		final long currentGlobalModVersion = globalModVersion;
 
+		// 将状态从'CREATED’转换为’RUNNING
 		if (transitionState(JobStatus.CREATED, JobStatus.RUNNING)) {
 
 			final CompletableFuture<Void> newSchedulingFuture = SchedulingUtils.schedule(

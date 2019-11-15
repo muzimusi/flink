@@ -123,9 +123,11 @@ public class JobManagerRunner implements LeaderContender, OnCompletionActions, A
 			this.executor = checkNotNull(executor);
 			this.fatalErrorHandler = checkNotNull(fatalErrorHandler);
 
+			//判断{@code JobGraph}中的{@code StreamNode}的个数, 如果为0, 则说明是个空任务，抛出异常
 			checkArgument(jobGraph.getNumberOfVertices() > 0, "The given job is empty");
 
 			// libraries and class loader first
+			// 将job所需jar相关信息注册到library管理器中，如果注册失败，则抛出异常
 			try {
 				libraryCacheManager.registerJob(
 						jobGraph.getJobID(), jobGraph.getUserJarBlobKeys(), jobGraph.getClasspaths());
@@ -133,6 +135,7 @@ public class JobManagerRunner implements LeaderContender, OnCompletionActions, A
 				throw new Exception("Cannot set up the user code libraries: " + e.getMessage(), e);
 			}
 
+			// 获取用户类加载器，如果获取的类加载器为null，则抛出异常
 			final ClassLoader userCodeLoader = libraryCacheManager.getClassLoader(jobGraph.getJobID());
 			if (userCodeLoader == null) {
 				throw new Exception("The user code class loader could not be initialized.");

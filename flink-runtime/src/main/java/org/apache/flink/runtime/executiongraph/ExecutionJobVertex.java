@@ -106,10 +106,17 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	 */
 	private final List<OperatorID> userDefinedOperatorIds;
 
+	// ExecutionJobVertex持有ExecutionVertex数组
 	private final ExecutionVertex[] taskVertices;
 
+	// 输出
+	// ExecutionJobVertex可能有多个IntermediateResult输出，所以持有数组
+	// new ExecutionJobVertex -> producedDataSets = new IntermediateResult[] -> for new IntermediateResult
+	//						 -> for new ExecutionVertex -> for IntermediateResultPartition
 	private final IntermediateResult[] producedDataSets;
 
+	// 输入
+	// IntermediateResult --[逻辑链接]-- ExecutionJobVertex
 	private final List<IntermediateResult> inputs;
 
 	private final int parallelism;
@@ -171,6 +178,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		this.graph = graph;
 		this.jobVertex = jobVertex;
 
+		// 算子并行度
 		int vertexParallelism = jobVertex.getParallelism();
 		int numTaskVertices = vertexParallelism > 0 ? vertexParallelism : defaultParallelism;
 
@@ -194,6 +202,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		this.parallelism = numTaskVertices;
 		this.resourceProfile = ResourceProfile.fromResourceSpec(jobVertex.getMinResources(), 0);
 
+		// 根据算子并行度创建ExecutionVertex数组
 		this.taskVertices = new ExecutionVertex[numTaskVertices];
 		this.operatorIDs = Collections.unmodifiableList(jobVertex.getOperatorIDs());
 		this.userDefinedOperatorIds = Collections.unmodifiableList(jobVertex.getUserDefinedOperatorIDs());
@@ -210,19 +219,26 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		}
 
 		// create the intermediate results
+		// 创建IntermediateResult数组（一个IntermediateDataSet生成一个IntermediateResult）
 		this.producedDataSets = new IntermediateResult[jobVertex.getNumberOfProducedIntermediateDataSets()];
 
 		for (int i = 0; i < jobVertex.getProducedDataSets().size(); i++) {
 			final IntermediateDataSet result = jobVertex.getProducedDataSets().get(i);
 
+			// 根据IntermediateDataSet创建IntermediateResult,
+			// IntermediateResult内部创建IntermediateResultPartition数组，数组大小有算子并发度决定
+			// IntermediateResult内部持有ExecutionJobVertex和IntermediateResultPartition
 			this.producedDataSets[i] = new IntermediateResult(
 					result.getId(),
 					this,
-					numTaskVertices,
+					numTaskVertices,// 算子并发度
 					result.getResultType());
 		}
 
 		// create all task vertices
+		// 创建ExecutionVertex
+		// numTaskVertices代表算子并行度
+		// ExecutionVertex数组的索引就是子任务的索引号
 		for (int i = 0; i < numTaskVertices; i++) {
 			ExecutionVertex vertex = new ExecutionVertex(
 					this,
@@ -431,15 +447,22 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 	//---------------------------------------------------------------------------------------------
 
+	// 核心逻辑：
+	// 获取ExecutionJobVertex的逻辑上游IntermediateResult（这个过程借助jobVertex操作）
+	// 遍历IntermediateResult中的IntermediateResultPartition，
+	// 生成ExecutionEdge连接IntermediateResultPartition和ExecutionJobVertex中的ExecutionVertex
 	public void connectToPredecessors(Map<IntermediateDataSetID, IntermediateResult> intermediateDataSets) throws JobException {
 
+		// jobVertex全部入边，每个jobEdge对应一个IntermediateDataSet
 		List<JobEdge> inputs = jobVertex.getInputs();
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug(String.format("Connecting ExecutionJobVertex %s (%s) to %d predecessors.", jobVertex.getID(), jobVertex.getName(), inputs.size()));
 		}
 
+		// 遍历jobVertex入边集合
 		for (int num = 0; num < inputs.size(); num++) {
+			// jobVertex的当前入边
 			JobEdge edge = inputs.get(num);
 
 			if (LOG.isDebugEnabled()) {
@@ -454,18 +477,27 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 			// fetch the intermediate result via ID. if it does not exist, then it either has not been created, or the order
 			// in which this method is called for the job vertices is not a topological order
+
+			// 拿到jobVertex当前入边edge的sourceId：intermediateDataSetID
+			// ExecutionGraph的intermediateResults维护了intermediateDataSetID到IntermediateResult的映射
+			// 拿到由intermediateDataSet转换来的IntermediateResult
 			IntermediateResult ires = intermediateDataSets.get(edge.getSourceId());
 			if (ires == null) {
 				throw new JobException("Cannot connect this job graph to the previous graph. No previous intermediate result found for ID "
 						+ edge.getSourceId());
 			}
 
+			// 至此拿到了ExecutionJobVertex的(逻辑)上游，IntermediateResult
 			this.inputs.add(ires);
 
 			int consumerIndex = ires.registerConsumer();
 
+			// ExecutionJobVertex包含算子并发度数量的ExecutionVertex，
+			// 遍历该ExecutionJobVertex中的ExecutionVertex
+			// 对ExecutionVertex进行连边
 			for (int i = 0; i < parallelism; i++) {
 				ExecutionVertex ev = taskVertices[i];
+				// ExecutionVertex的上游为IntermediateResult中的IntermediateResultPartition
 				ev.connectSource(num, ires, edge, consumerIndex);
 			}
 		}

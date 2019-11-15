@@ -29,6 +29,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+// IntermediateResult上游是ExecutionJobVertex
+// IntermediateResult内部持有ExecutionJobVertex和IntermediateResultPartition数组
 public class IntermediateResult {
 
 	private final IntermediateDataSetID id;
@@ -69,6 +71,7 @@ public class IntermediateResult {
 		checkArgument(numParallelProducers >= 1);
 		this.numParallelProducers = numParallelProducers;
 
+		// 根据算子并行度创建IntermediateResultPartition数组
 		this.partitions = new IntermediateResultPartition[numParallelProducers];
 
 		this.numberOfRunningProducers = new AtomicInteger(numParallelProducers);

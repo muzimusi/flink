@@ -26,7 +26,8 @@ package org.apache.flink.runtime.jobgraph;
 public class JobEdge implements java.io.Serializable {
 
 	private static final long serialVersionUID = 1L;
-	
+
+	// IntermediateDataSet -> jobEdge -> jobVertex
 	
 	/** The vertex connected to this edge. */
 	private final JobVertex target;

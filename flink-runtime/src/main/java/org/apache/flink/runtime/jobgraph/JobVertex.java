@@ -39,6 +39,12 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * The base class for job vertexes.
  */
+// jobVertex : IntermediateDataSet : jobEdge : jobVertex
+//     1	 :			a		   :	b	 :    d
+// 一个jobVertex有多个输出（下游）
+//				一个IntermediateDataSet有多个输出（下游）
+//									一个jobEde有多个输出（下游）
+//												一个jobVertex有多个输入（下游）
 public class JobVertex implements java.io.Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -61,9 +67,13 @@ public class JobVertex implements java.io.Serializable {
 	/** The alternative IDs of all operators contained in this vertex. */
 	private final ArrayList<OperatorID> operatorIdsAlternatives = new ArrayList<>();
 
+	// JobEdges -> jobVertex -> IntermediateDataSets
+
+	// jobVertex的输出是IntermediateDataSet集合
 	/** List of produced data sets, one per writer */
 	private final ArrayList<IntermediateDataSet> results = new ArrayList<IntermediateDataSet>();
 
+	// jobVertex的输入是JobEdge集合
 	/** List of edges with incoming data. One per Reader. */
 	private final ArrayList<JobEdge> inputs = new ArrayList<JobEdge>();
 

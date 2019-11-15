@@ -52,6 +52,7 @@ public class SchedulingUtils {
 			final Iterable<ExecutionVertex> vertices,
 			final ExecutionGraph executionGraph) {
 
+		// 根据调度模式，执行不同的调度策略
 		switch (scheduleMode) {
 			case LAZY_FROM_SOURCES:
 			case LAZY_FROM_SOURCES_WITH_BATCH_SLOT_REQUEST:
@@ -111,6 +112,7 @@ public class SchedulingUtils {
 
 		executionGraph.assertRunningInJobMasterMainThread();
 
+		// 确认下当前的状态是否是RUNNING
 		checkState(executionGraph.getState() == JobStatus.RUNNING, "job is not running currently");
 
 		// Important: reserve all the space we need up front.

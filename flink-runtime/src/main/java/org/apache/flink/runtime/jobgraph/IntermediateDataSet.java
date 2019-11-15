@@ -36,6 +36,11 @@ public class IntermediateDataSet implements java.io.Serializable {
 	
 	private static final long serialVersionUID = 1L;
 
+	// jobVertex : IntermediateDataSet <=> 1:n
+	// IntermediateDataSet : jobEdges <=> 1:n
+	// jobEdges : jobVertex <=> n:1
+
+	// jobVertex -> IntermediateDataSet -> jobEdges
 	
 	private final IntermediateDataSetID id; 		// the identifier
 	
