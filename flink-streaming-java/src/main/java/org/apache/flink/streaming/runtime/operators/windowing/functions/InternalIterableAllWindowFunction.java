@@ -35,6 +35,7 @@ public final class InternalIterableAllWindowFunction<IN, OUT, W extends Window>
 
 	private static final long serialVersionUID = 1L;
 
+	// AllWindowFunction无法访问window metaData
 	public InternalIterableAllWindowFunction(AllWindowFunction<IN, OUT, W> wrappedFunction) {
 		super(wrappedFunction);
 	}

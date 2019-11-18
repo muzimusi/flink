@@ -52,6 +52,7 @@ public final class InternalAggregateProcessAllWindowFunction<T, ACC, V, R, W ext
 	public InternalAggregateProcessAllWindowFunction(
 			AggregateFunction<T, ACC, V> aggFunction,
 			ProcessAllWindowFunction<V, R, W> windowFunction) {
+	    // 向上传递ProcessAllWindowFunction
 		super(windowFunction);
 		this.aggFunction = aggFunction;
 	}

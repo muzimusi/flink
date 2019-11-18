@@ -133,6 +133,7 @@ public class WindowedStream<T, K, W extends Window> {
 	/**
 	 * Sets the {@code Trigger} that should be used to trigger window emission.
 	 */
+	// 为allWindowedStream指定trigger,规定何时出发窗口计算，以及何时清楚窗口元素
 	@PublicEvolving
 	public WindowedStream<T, K, W> trigger(Trigger<? super T, ? super W> trigger) {
 		if (windowAssigner instanceof MergingWindowAssigner && !trigger.canMerge()) {
@@ -186,6 +187,7 @@ public class WindowedStream<T, K, W extends Window> {
 	 * <p>Note: When using an evictor window performance will degrade significantly, since
 	 * incremental aggregation of window results cannot be used.
 	 */
+	// 为allwindowedStream指定evictor，用户过滤window中的数据
 	@PublicEvolving
 	public WindowedStream<T, K, W> evictor(Evictor<? super T, ? super W> evictor) {
 		if (windowAssigner instanceof BaseAlignedWindowAssigner) {
@@ -277,6 +279,7 @@ public class WindowedStream<T, K, W extends Window> {
 
 		OneInputStreamOperator<T, R> operator;
 
+		// 指定evictor，会过滤窗口数据
 		if (evictor != null) {
 			@SuppressWarnings({"unchecked", "rawtypes"})
 			TypeSerializer<StreamRecord<T>> streamRecordSerializer =
@@ -297,7 +300,9 @@ public class WindowedStream<T, K, W extends Window> {
 					allowedLateness,
 					lateDataOutputTag);
 
-		} else {
+		}
+		// 无evictor
+		else {
 			ReducingStateDescriptor<T> stateDesc = new ReducingStateDescriptor<>("window-contents",
 				reduceFunction,
 				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
@@ -813,6 +818,7 @@ public class WindowedStream<T, K, W extends Window> {
 
 		OneInputStreamOperator<T, R> operator;
 
+		// 指定evictor，会过滤窗口数据
 		if (evictor != null) {
 			@SuppressWarnings({"unchecked", "rawtypes"})
 			TypeSerializer<StreamRecord<T>> streamRecordSerializer =
@@ -832,7 +838,9 @@ public class WindowedStream<T, K, W extends Window> {
 					allowedLateness,
 					lateDataOutputTag);
 
-		} else {
+		}
+		// 无evictor
+		else {
 			AggregatingStateDescriptor<T, ACC, V> stateDesc = new AggregatingStateDescriptor<>("window-contents",
 					aggregateFunction, accumulatorType.createSerializer(getExecutionEnvironment().getConfig()));
 
@@ -1081,6 +1089,7 @@ public class WindowedStream<T, K, W extends Window> {
 
 		WindowOperator<K, T, Iterable<T>, R, W> operator;
 
+		// 指定evictor，会过滤窗口数据
 		if (evictor != null) {
 			@SuppressWarnings({"unchecked", "rawtypes"})
 			TypeSerializer<StreamRecord<T>> streamRecordSerializer =
@@ -1101,7 +1110,9 @@ public class WindowedStream<T, K, W extends Window> {
 					allowedLateness,
 					lateDataOutputTag);
 
-		} else {
+		}
+		// 无evictor
+		else {
 			ListStateDescriptor<T> stateDesc = new ListStateDescriptor<>("window-contents",
 				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 

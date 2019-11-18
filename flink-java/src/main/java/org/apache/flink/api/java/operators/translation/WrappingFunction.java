@@ -36,6 +36,7 @@ public abstract class WrappingFunction<T extends Function> extends AbstractRichF
 
 	protected T wrappedFunction;
 
+	// Function包装类
 	protected WrappingFunction(T wrappedFunction) {
 		this.wrappedFunction = wrappedFunction;
 	}

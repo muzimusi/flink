@@ -115,14 +115,17 @@ public class AllWindowedStream<T, W extends Window> {
 	@PublicEvolving
 	public AllWindowedStream(DataStream<T> input,
 			WindowAssigner<? super T, W> windowAssigner) {
+		// 其实就是所有元素的key都相同
 		this.input = input.keyBy(new NullByteKeySelector<T>());
 		this.windowAssigner = windowAssigner;
+		// default trigger
 		this.trigger = windowAssigner.getDefaultTrigger(input.getExecutionEnvironment());
 	}
 
 	/**
 	 * Sets the {@code Trigger} that should be used to trigger window emission.
 	 */
+	// 为allWindowedStream指定trigger,规定何时出发窗口计算，以及何时清楚窗口元素
 	@PublicEvolving
 	public AllWindowedStream<T, W> trigger(Trigger<? super T, ? super W> trigger) {
 		if (windowAssigner instanceof MergingWindowAssigner && !trigger.canMerge()) {
@@ -172,6 +175,7 @@ public class AllWindowedStream<T, W extends Window> {
 	 * <p>Note: When using an evictor window performance will degrade significantly, since
 	 * incremental aggregation of window results cannot be used.
 	 */
+	// 为allwindowedStream指定evictor，用户过滤window中的数据
 	@PublicEvolving
 	public AllWindowedStream<T, W> evictor(Evictor<? super T, ? super W> evictor) {
 		if (windowAssigner instanceof BaseAlignedWindowAssigner) {
@@ -369,6 +373,7 @@ public class AllWindowedStream<T, W extends Window> {
 
 		OneInputStreamOperator<T, R> operator;
 
+		// 在windowedStream上指定了evictor
 		if (evictor != null) {
 			@SuppressWarnings({"unchecked", "rawtypes"})
 			TypeSerializer<StreamRecord<T>> streamRecordSerializer =
@@ -391,7 +396,9 @@ public class AllWindowedStream<T, W extends Window> {
 					allowedLateness,
 					lateDataOutputTag);
 
-		} else {
+		}
+		// 没有指定evictor
+		else {
 			ReducingStateDescriptor<T> stateDesc = new ReducingStateDescriptor<>("window-contents",
 				reduceFunction,
 				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
@@ -410,6 +417,7 @@ public class AllWindowedStream<T, W extends Window> {
 					lateDataOutputTag);
 		}
 
+		// AllWindowedStream -> keyedStream
 		return input.transform(opName, resultType, operator).forceNonParallel();
 	}
 
@@ -723,6 +731,7 @@ public class AllWindowedStream<T, W extends Window> {
 
 		OneInputStreamOperator<T, R> operator;
 
+		// 指定evictor，会过滤窗口数据
 		if (evictor != null) {
 			@SuppressWarnings({"unchecked", "rawtypes"})
 			TypeSerializer<StreamRecord<T>> streamRecordSerializer =
@@ -745,7 +754,9 @@ public class AllWindowedStream<T, W extends Window> {
 					allowedLateness,
 					lateDataOutputTag);
 
-		} else {
+		}
+		// 无evictor
+		else {
 			AggregatingStateDescriptor<T, ACC, V> stateDesc = new AggregatingStateDescriptor<>(
 					"window-contents",
 					aggregateFunction,
@@ -1052,6 +1063,10 @@ public class AllWindowedStream<T, W extends Window> {
 	 * @param function The window function.
 	 * @return The data stream that is the result of applying the window function to the window.
 	 */
+	// 传入window function
+	// 自动获取function返回类型
+	// 调用apply(InternalWindowFunction, TypeInformation, String)
+	// 无法访问 window metadata
 	public <R> SingleOutputStreamOperator<R> apply(AllWindowFunction<T, R, W> function) {
 		String callLocation = Utils.getCallLocationName();
 		function = input.getExecutionEnvironment().clean(function);
@@ -1070,6 +1085,10 @@ public class AllWindowedStream<T, W extends Window> {
 	 * @param function The window function.
 	 * @return The data stream that is the result of applying the window function to the window.
 	 */
+	// 传入window function
+	// 手动指定获取function返回类型
+	// 调用apply(InternalWindowFunction, TypeInformation, String)
+	// 无法访问 window metadata
 	public <R> SingleOutputStreamOperator<R> apply(AllWindowFunction<T, R, W> function, TypeInformation<R> resultType) {
 		String callLocation = Utils.getCallLocationName();
 		function = input.getExecutionEnvironment().clean(function);
@@ -1087,6 +1106,10 @@ public class AllWindowedStream<T, W extends Window> {
 	 * @param function The process window function.
 	 * @return The data stream that is the result of applying the window function to the window.
 	 */
+	// 传入process window function
+	// 自动获取function返回类型
+	// 调用apply(InternalWindowFunction, TypeInformation, String)
+	// process window function持有context可以访问window metadata
 	@PublicEvolving
 	public <R> SingleOutputStreamOperator<R> process(ProcessAllWindowFunction<T, R, W> function) {
 		String callLocation = Utils.getCallLocationName();
@@ -1106,6 +1129,10 @@ public class AllWindowedStream<T, W extends Window> {
 	 * @param function The process window function.
 	 * @return The data stream that is the result of applying the window function to the window.
 	 */
+	// 传入process window function
+	// 并手动指定返回类型
+	// 调用apply(InternalWindowFunction, TypeInformation, String)
+	// process window function持有context可以访问window metadata
 	@PublicEvolving
 	public <R> SingleOutputStreamOperator<R> process(ProcessAllWindowFunction<T, R, W> function, TypeInformation<R> resultType) {
 		String callLocation = Utils.getCallLocationName();
@@ -1113,6 +1140,8 @@ public class AllWindowedStream<T, W extends Window> {
 		return apply(new InternalIterableProcessAllWindowFunction<>(function), resultType, callLocation);
 	}
 
+	// process -> InternalIterableProcessAllWindowFunction: 可以访问 window metadata
+	// apply -> InternalIterableAllWindowFunction: 无法访问window metadata
 	private <R> SingleOutputStreamOperator<R> apply(InternalWindowFunction<Iterable<T>, R, Byte, W> function, TypeInformation<R> resultType, String callLocation) {
 
 		String udfName = "AllWindowedStream." + callLocation;
@@ -1122,6 +1151,7 @@ public class AllWindowedStream<T, W extends Window> {
 
 		WindowOperator<Byte, T, Iterable<T>, R, W> operator;
 
+		// 指定evictor，会过滤窗口数据
 		if (evictor != null) {
 			@SuppressWarnings({"unchecked", "rawtypes"})
 			TypeSerializer<StreamRecord<T>> streamRecordSerializer =
@@ -1144,7 +1174,9 @@ public class AllWindowedStream<T, W extends Window> {
 					allowedLateness,
 					lateDataOutputTag);
 
-		} else {
+		}
+		// 无evictor
+		else {
 			ListStateDescriptor<T> stateDesc = new ListStateDescriptor<>("window-contents",
 					input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 

@@ -190,6 +190,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			long allowedLateness,
 			OutputTag<IN> lateDataOutputTag) {
 
+		// 显示确定AbstractUdfStreamOperator中userFunction的类型，所以在本类中可以直接使用userFunction
 		super(windowFunction);
 
 		checkArgument(!(windowAssigner instanceof BaseAlignedWindowAssigner),

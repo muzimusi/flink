@@ -614,8 +614,11 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	 *
 	 * @param size The size of the window.
 	 */
+	// 快捷写法
 	public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size) {
 		if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+			// 完全写法
+			// window(WindowAssigner<? super T, W> assigner)
 			return window(TumblingProcessingTimeWindows.of(size));
 		} else {
 			return window(TumblingEventTimeWindows.of(size));
@@ -632,8 +635,11 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	 *
 	 * @param size The size of the window.
 	 */
+	// 快捷写法
 	public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size, Time slide) {
 		if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+			// 完全写法
+			// window(WindowAssigner<? super T, W> assigner)
 			return window(SlidingProcessingTimeWindows.of(size, slide));
 		} else {
 			return window(SlidingEventTimeWindows.of(size, slide));
@@ -673,6 +679,14 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	 * @param assigner The {@code WindowAssigner} that assigns elements to windows.
 	 * @return The trigger windows data stream.
 	 */
+
+	//  ____________     window(WindowAssigner)       _____________
+	// | DataStream |   ----------------------->     | KeyedStream |
+	//  ------------       		                      -------------
+
+	// 完全写法
+	// window(WindowAssigner<? super T, W> assigner)
+	// 每个window都会有默认的trigger
 	@PublicEvolving
 	public <W extends Window> WindowedStream<T, KEY, W> window(WindowAssigner<? super T, W> assigner) {
 		return new WindowedStream<>(this, assigner);

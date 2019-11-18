@@ -747,8 +747,8 @@ public class DataStream<T> {
 	/**
 	 * Windows this {@code DataStream} into tumbling time windows.
 	 *
-	 * <p>This is a shortcut for either {@code .window(TumblingEventTimeWindows.of(size))} or
-	 * {@code .window(TumblingProcessingTimeWindows.of(size))} depending on the time characteristic
+	 * <p>This is a shortcut for either {@code .windowAll(TumblingEventTimeWindows.of(size))} or
+	 * {@code .windowAll(TumblingProcessingTimeWindows.of(size))} depending on the time characteristic
 	 * set using
 	 *
 	 * <p>Note: This operation is inherently non-parallel since all elements have to pass through
@@ -758,8 +758,12 @@ public class DataStream<T> {
 	 *
 	 * @param size The size of the window.
 	 */
+	// 简写
 	public AllWindowedStream<T, TimeWindow> timeWindowAll(Time size) {
 		if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+			// 完全写法
+			// dataStream.windowAll(WindowAssigner<? super T, W> assigner)
+			// keyedStream.window(WindowAssigner<? super T, W> assigner)
 			return windowAll(TumblingProcessingTimeWindows.of(size));
 		} else {
 			return windowAll(TumblingEventTimeWindows.of(size));
@@ -769,8 +773,8 @@ public class DataStream<T> {
 	/**
 	 * Windows this {@code DataStream} into sliding time windows.
 	 *
-	 * <p>This is a shortcut for either {@code .window(SlidingEventTimeWindows.of(size, slide))} or
-	 * {@code .window(SlidingProcessingTimeWindows.of(size, slide))} depending on the time characteristic
+	 * <p>This is a shortcut for either {@code .windowAll(SlidingEventTimeWindows.of(size, slide))} or
+	 * {@code .windowAll(SlidingProcessingTimeWindows.of(size, slide))} depending on the time characteristic
 	 * set using
 	 * {@link org.apache.flink.streaming.api.environment.StreamExecutionEnvironment#setStreamTimeCharacteristic(org.apache.flink.streaming.api.TimeCharacteristic)}
 	 *
@@ -830,6 +834,14 @@ public class DataStream<T> {
 	 * @param assigner The {@code WindowAssigner} that assigns elements to windows.
 	 * @return The trigger windows data stream.
 	 */
+
+	//  ____________     windowAll(WindowAssigner)       ___________________
+	// | DataStream |   -------------------------->     | AllwindowedStream |
+	//  ------------       			                     -------------------
+
+	// 完全写法
+	// window(WindowAssigner<? super T, W> assigner)
+	// 每个window都会有默认的trigger
 	@PublicEvolving
 	public <W extends Window> AllWindowedStream<T, W> windowAll(WindowAssigner<? super T, W> assigner) {
 		return new AllWindowedStream<>(this, assigner);

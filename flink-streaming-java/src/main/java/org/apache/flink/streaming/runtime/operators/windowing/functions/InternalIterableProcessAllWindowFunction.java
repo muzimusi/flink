@@ -38,6 +38,7 @@ public final class InternalIterableProcessAllWindowFunction<IN, OUT, W extends W
 
 	private transient InternalProcessAllWindowContext<IN, OUT, W> ctx;
 
+	// ProcessAllWindowFunction可以使用context访问window metaData
 	public InternalIterableProcessAllWindowFunction(ProcessAllWindowFunction<IN, OUT, W> wrappedFunction) {
 		super(wrappedFunction);
 	}

@@ -34,6 +34,7 @@ public class NullByteKeySelector<T> implements KeySelector<T, Byte> {
 
 	@Override
 	public Byte getKey(T value) throws Exception {
+		// 所有元素的key都相同
 		return 0;
 	}
 }
