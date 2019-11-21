@@ -71,6 +71,7 @@ public abstract class ProgramOptions extends CommandLineOptions {
 	private final boolean isPython;
 
 	protected ProgramOptions(CommandLine line) throws CliArgsException {
+		// CommandLineOptions
 		super(line);
 
 		String[] args = line.hasOption(ARGS_OPTION.getOpt()) ?

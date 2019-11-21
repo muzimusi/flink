@@ -23,6 +23,7 @@ import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.client.cli.CliFrontendParser;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.JobWithJars;
 import org.apache.flink.client.program.ProgramInvocationException;
@@ -60,6 +61,7 @@ public class RemoteStreamEnvironment extends StreamExecutionEnvironment {
 	private final int port;
 
 	/** The configuration used to parametrize the client that connects to the remote cluster. */
+	// ClusterClient params
 	private final Configuration clientConfiguration;
 
 	/** The jar files that need to be attached to each job. */
@@ -247,7 +249,7 @@ public class RemoteStreamEnvironment extends StreamExecutionEnvironment {
 		List<URL> jarFiles,
 		String host,
 		int port,
-		Configuration clientConfiguration,
+		Configuration clientConfiguration, // ClusterClient params
 		List<URL> globalClasspaths,
 		SavepointRestoreSettings savepointRestoreSettings
 	) throws ProgramInvocationException {
@@ -258,6 +260,7 @@ public class RemoteStreamEnvironment extends StreamExecutionEnvironment {
 		ClassLoader userCodeClassLoader = JobWithJars.buildUserCodeClassLoader(jarFiles, globalClasspaths, envClassLoader);
 
 		Configuration configuration = new Configuration();
+		// [rest]ClusterClient configuration
 		configuration.addAll(clientConfiguration);
 
 		configuration.setString(JobManagerOptions.ADDRESS, host);
@@ -267,7 +270,13 @@ public class RemoteStreamEnvironment extends StreamExecutionEnvironment {
 
 		final ClusterClient<?> client;
 		try {
+			// restClusterClient [ ClusterClient默认attached ]
 			client = new RestClusterClient<>(configuration, "RemoteStreamEnvironment");
+			// remote模式下可以选择detached或者attached
+			if(clientConfiguration.getBoolean(CliFrontendParser.DETACHED_OPTION.getOpt(),false) ||
+				clientConfiguration.getBoolean(CliFrontendParser.DETACHED_OPTION.getLongOpt(),false)) {
+				client.setDetached(true);
+			}
 		}
 		catch (Exception e) {
 			throw new ProgramInvocationException("Cannot establish connection to JobManager: " + e.getMessage(),
@@ -325,7 +334,7 @@ public class RemoteStreamEnvironment extends StreamExecutionEnvironment {
 			jarFiles,
 			host,
 			port,
-			clientConfiguration,
+			clientConfiguration, // ClusterClient configuration
 			globalClasspaths,
 			savepointRestoreSettings);
 	}

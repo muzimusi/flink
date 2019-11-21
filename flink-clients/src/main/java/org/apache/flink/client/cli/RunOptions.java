@@ -26,6 +26,7 @@ import org.apache.commons.cli.CommandLine;
 public class RunOptions extends ProgramOptions {
 
 	public RunOptions(CommandLine line) throws CliArgsException {
+		// ProgramOptions
 		super(line);
 	}
 }

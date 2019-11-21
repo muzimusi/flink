@@ -97,6 +97,7 @@ public abstract class ClusterClient<T> {
 	protected JobExecutionResult lastJobExecutionResult;
 
 	/** Switch for blocking/detached job submission of the client. */
+	// 默认方式为attached
 	private boolean detachedJobSubmission = false;
 
 	// ------------------------------------------------------------------------

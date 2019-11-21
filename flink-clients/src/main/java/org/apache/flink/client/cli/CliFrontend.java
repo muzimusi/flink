@@ -272,6 +272,7 @@ public class CliFrontend {
 
 				try {
 					client.setPrintStatusDuringExecution(runOptions.getStdoutLogging());
+					// session模式下 选择attached/detached
 					client.setDetached(runOptions.getDetachedMode());
 
 					LOG.debug("{}", runOptions.getSavepointRestoreSettings());
