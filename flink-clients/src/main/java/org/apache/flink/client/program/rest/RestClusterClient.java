@@ -19,6 +19,7 @@
 package org.apache.flink.client.program.rest;
 
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobSubmissionResult;
 import org.apache.flink.api.common.accumulators.AccumulatorHelper;
@@ -176,6 +177,8 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 			T clusterId,
 			WaitStrategy waitStrategy,
 			@Nullable LeaderRetrievalService webMonitorRetrievalService) throws Exception {
+		// 配置向父类ClusterClient传递，
+		// 官方的ClusterClient 默认为attached
 		super(configuration);
 		this.restClusterClientConfiguration = RestClusterClientConfiguration.fromConfiguration(configuration);
 
@@ -234,17 +237,24 @@ public class RestClusterClient<T> extends ClusterClient<T> implements NewCluster
 	public JobSubmissionResult submitJob(JobGraph jobGraph, ClassLoader classLoader) throws ProgramInvocationException {
 		log.info("Submitting job {} (detached: {}).", jobGraph.getJobID(), isDetached());
 
-		// 非detached模式下：通过rest方式直接提交jobGraph
+		// session模式下：通过rest方式直接提交jobGraph
 		final CompletableFuture<JobSubmissionResult> jobSubmissionFuture = submitJob(jobGraph);
 
+		// detched模式
 		if (isDetached()) {
 			try {
-				return jobSubmissionFuture.get();
+				// return jobSubmissionFuture.get();
+				return new JobExecutionResult(
+					jobSubmissionFuture.get().getJobID(),
+					System.currentTimeMillis(),
+					null);
 			} catch (Exception e) {
 				throw new ProgramInvocationException("Could not submit job",
 					jobGraph.getJobID(), ExceptionUtils.stripExecutionException(e));
 			}
-		} else {
+		}
+		// attached模式
+		else {
 			final CompletableFuture<JobResult> jobResultFuture = jobSubmissionFuture.thenCompose(
 				ignored -> requestJobResult(jobGraph.getJobID()));
 
