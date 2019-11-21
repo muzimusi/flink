@@ -26,6 +26,8 @@ import org.apache.flink.configuration.TaskManagerOptions;
  * Description of the cluster to start by the {@link ClusterDescriptor}.
  */
 public final class ClusterSpecification {
+	// 持有该集群的4个基本参数：
+	// JobManager内存大小、TaskManager内存大小、TaskManager数量、每个TaskManager的slot数。
 	private final int masterMemoryMB;
 	private final int taskManagerMemoryMB;
 	private final int numberTaskManagers;
@@ -82,6 +84,7 @@ public final class ClusterSpecification {
 	 * Builder for the {@link ClusterSpecification} instance.
 	 */
 	public static class ClusterSpecificationBuilder {
+		// 集群默认参数大小
 		private int masterMemoryMB = 768;
 		private int taskManagerMemoryMB = 768;
 		private int numberTaskManagers = 1;

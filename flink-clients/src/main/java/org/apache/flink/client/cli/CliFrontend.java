@@ -237,6 +237,26 @@ public class CliFrontend {
 
 				// 从PackagedProgram中创建jobGraph
 				final JobGraph jobGraph = PackagedProgramUtils.createJobGraph(program, configuration, parallelism);
+				/** 内存划分 */
+				/** 网络缓存 (network Buffer) */
+				// 用于网络传输及与网络相关的动作（shuffle、广播等）的内存块，由MemorySegment组成
+				//  - 网络缓存占TM内存的默认比例，默认0.1
+				//  - taskmanager.network.memory.fraction: 0.15
+				//  - 网络缓存的最小值和最大值 ，默认64MB和1GB
+				//  - taskmanager.network.memory.min: 128mb
+				//  - taskmanager.network.memory.max: 1gb
+
+				/** 托管内存（Flink Managed Memory）*/
+				// 用于所有Flink内部算子逻辑的内存分配，以及中间数据的存储，同样由MemorySegment组成，并通过Flink的MemoryManager组件管理。
+				// 默认在堆内分配，如果开启堆外内存分配的开关，也可以在堆内、堆外同时分配。
+				//  - 堆内托管内存占TM堆内内存的比例，默认0.7
+				//  - taskmanager.memory.fraction: 0.7
+				//  - 是否允许分配堆外托管内存，默认不允许
+				//  - taskmanager.memory.off-heap: false
+
+				// -yjm 2048 -ytm 4096
+				// 解析命令行参数，默认值为flink-conf.yaml中相应配置项
+				// 获取集群基本参数 JobManager内存大小、TaskManager内存大小、TaskManager数量(该参数马上被遗弃)、每个TaskManager的slot数
 
 				final ClusterSpecification clusterSpecification = customCommandLine.getClusterSpecification(commandLine);
 				client = clusterDescriptor.deployJobCluster(

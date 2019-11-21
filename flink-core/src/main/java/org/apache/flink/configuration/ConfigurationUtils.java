@@ -46,12 +46,15 @@ public class ConfigurationUtils {
 	 * @return the memory size of job manager's heap memory.
 	 */
 	public static MemorySize getJobManagerHeapMemory(Configuration configuration) {
+		// jobmanager.heap.size (自带单位)
 		if (configuration.containsKey(JobManagerOptions.JOB_MANAGER_HEAP_MEMORY.key())) {
 			return MemorySize.parse(configuration.getString(JobManagerOptions.JOB_MANAGER_HEAP_MEMORY));
+			// 老参数 jobmanager.heap.mb（补充单位）
 		} else if (configuration.containsKey(JobManagerOptions.JOB_MANAGER_HEAP_MEMORY_MB.key())) {
 			return MemorySize.parse(configuration.getInteger(JobManagerOptions.JOB_MANAGER_HEAP_MEMORY_MB) + "m");
 		} else {
 			//use default value
+			// jobmanager.heap.size
 			return MemorySize.parse(JobManagerOptions.JOB_MANAGER_HEAP_MEMORY.defaultValue());
 		}
 	}
@@ -65,6 +68,7 @@ public class ConfigurationUtils {
 	 * @return the memory size of task manager's heap memory.
 	 */
 	public static MemorySize getTaskManagerHeapMemory(Configuration configuration) {
+		// taskmanager.heap.size
 		if (configuration.containsKey(TaskManagerOptions.TASK_MANAGER_HEAP_MEMORY.key())) {
 			return MemorySize.parse(configuration.getString(TaskManagerOptions.TASK_MANAGER_HEAP_MEMORY));
 		} else if (configuration.containsKey(TaskManagerOptions.TASK_MANAGER_HEAP_MEMORY_MB.key())) {

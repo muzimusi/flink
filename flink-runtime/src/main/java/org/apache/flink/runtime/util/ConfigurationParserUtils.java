@@ -141,13 +141,15 @@ public class ConfigurationParserUtils {
 	 * @param configuration configuration object
 	 * @return size of memory segment
 	 */
+	// taskmanager.memory.segment-size 必须大于等于4K 且值为2的n幂次数
 	public static int getPageSize(Configuration configuration) {
+		// taskmanager.memory.segment-size (default:32k)
 		final int pageSize = checkedDownCast(MemorySize.parse(
 			configuration.getString(TaskManagerOptions.MEMORY_SEGMENT_SIZE)).getBytes());
 
 		// check page size of for minimum size
 		checkConfigParameter(
-			pageSize >= MemoryManager.MIN_PAGE_SIZE,
+			pageSize >= MemoryManager.MIN_PAGE_SIZE, // (4k) 4 * 1024
 			pageSize,
 			TaskManagerOptions.MEMORY_SEGMENT_SIZE.key(),
 			"Minimum memory segment size is " + MemoryManager.MIN_PAGE_SIZE);

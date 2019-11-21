@@ -409,11 +409,22 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 	 */
 	private void validateClusterSpecification(ClusterSpecification clusterSpecification) throws FlinkException {
 		try {
+			// 返回-ytm 参数指定的内存大小，若没有指定-ytm这里返回flink-conf.yaml里对应配置项
 			final long taskManagerMemorySize = clusterSpecification.getTaskManagerMemoryMB();
 			// We do the validation by calling the calculation methods here
 			// Internally these methods will check whether the cluster can be started with the provided
 			// ClusterSpecification and the configured memory requirements
+			/**
+			 *    +-------------------+----------------+----------------+
+			 *    | 						内存划分 					|
+			 *    +-------------------+----------------+----------------+
+			 * 	  |        free       | memory manager | network buffer |
+			 * 	  +-------------------+----------------+----------------+
+			 */
+			// calculateCutoffMB负责计算一个承载TM的YARN Container需要预留多少内存给自身（container）
 			final long cutoff = ContaineredTaskManagerParameters.calculateCutoffMB(flinkConfiguration, taskManagerMemorySize);
+			// Taskmanager内存划分
+			// tm_total_memory = taskmanager.heap.size - max(containerized.heap-cutoff-min, taskmanager.heap.size * containerized.heap-cutoff-ratio)
 			TaskManagerServices.calculateHeapSizeMB(taskManagerMemorySize - cutoff, flinkConfiguration);
 		} catch (IllegalArgumentException iae) {
 			throw new FlinkException("Cannot fulfill the minimum memory requirements with the provided " +
@@ -430,6 +441,8 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 	 * @param jobGraph A job graph which is deployed with the Flink cluster, {@code null} if none
 	 * @param detached True if the cluster should be started in detached mode
 	 */
+	/** flink memory */
+	// ClusterSpecification对象持有该集群的4个基本参数：JobManager内存大小、TaskManager内存大小、TaskManager数量、每个TaskManager的slot数
 	protected ClusterClient<ApplicationId> deployInternal(
 			ClusterSpecification clusterSpecification,
 			String applicationName,
@@ -438,6 +451,7 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 			boolean detached) throws Exception {
 
 		// ------------------ Check if configuration is valid --------------------
+		// 用于校验ClusterSpecification是否合法。
 		validateClusterSpecification(clusterSpecification);
 
 		if (UserGroupInformation.isSecurityEnabled()) {

@@ -127,11 +127,16 @@ class NettyServer {
 			bootstrap.childOption(ChannelOption.SO_RCVBUF, receiveAndSendBufferSize);
 		}
 
+		/** Netty 水位值机制 */
+		// 当输出缓冲中的字节数超过了高水位值, 则 Channel.isWritable() 会返回false。
+		// 当输出缓存中的字节数又掉到了低水位值以下, 则 Channel.isWritable() 会重新返回true。
+
 		// Low and high water marks for flow control
 		// hack around the impossibility (in the current netty version) to set both watermarks at
 		// the same time:
 		final int defaultHighWaterMark = 64 * 1024; // from DefaultChannelConfig (not exposed)
 		final int newLowWaterMark = config.getMemorySegmentSize() + 1;
+		// 默认高水位值为2个buffer大小, 当接收端消费速度跟不上，发送端会立即感知到
 		final int newHighWaterMark = 2 * config.getMemorySegmentSize();
 		if (newLowWaterMark > defaultHighWaterMark) {
 			bootstrap.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, newHighWaterMark);

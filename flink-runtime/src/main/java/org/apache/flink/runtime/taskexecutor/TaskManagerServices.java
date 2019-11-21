@@ -424,11 +424,13 @@ public class TaskManagerServices {
 		Preconditions.checkArgument(totalJavaMemorySizeMB > 0);
 
 		// all values below here are in bytes
-
+		// total = ytm - cutOff
 		final long totalProcessMemory = megabytesToBytes(totalJavaMemorySizeMB);
+		// NetWork Buffer
 		final long networkReservedMemory = getReservedNetworkMemory(config, totalProcessMemory);
 		final long heapAndManagedMemory = totalProcessMemory - networkReservedMemory;
 
+		// taskmanager.memory.off-heap 表示是否开启堆外内存
 		if (config.getBoolean(TaskManagerOptions.MEMORY_OFF_HEAP)) {
 			final long managedMemorySize = getManagedMemoryFromHeapAndManaged(config, heapAndManagedMemory);
 
@@ -440,6 +442,7 @@ public class TaskManagerServices {
 
 			return bytesToMegabytes(heapAndManagedMemory - managedMemorySize);
 		}
+		// 考虑 taskmanager.memory.off-heap：false
 		else {
 			return bytesToMegabytes(heapAndManagedMemory);
 		}
@@ -484,6 +487,7 @@ public class TaskManagerServices {
 	 */
 	public static long getReservedNetworkMemory(Configuration config, long totalProcessMemory) {
 		// subtract the Java memory used for network buffers (always off-heap)
+		// 计算Network buffer大小的方法 (对外内存)
 		return NettyShuffleEnvironmentConfiguration.calculateNetworkBufferMemory(totalProcessMemory, config);
 	}
 

@@ -398,6 +398,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 		// Task Managers memory
 		final int taskManagerMemoryMB = ConfigurationUtils.getTaskManagerHeapMemory(configuration).getMebiBytes();
 
+		// taskmanager.numberOfTaskSlots
 		int slotsPerTaskManager = configuration.getInteger(TaskManagerOptions.NUM_TASK_SLOTS);
 
 		return new ClusterSpecification.ClusterSpecificationBuilder()
@@ -506,6 +507,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 			effectiveConfiguration.setString(HA_CLUSTER_ID, zooKeeperNamespace);
 		}
 
+		// 命令行中有jm参数
 		if (commandLine.hasOption(jmMemory.getOpt())) {
 			String jmMemoryVal = commandLine.getOptionValue(jmMemory.getOpt());
 			if (!MemorySize.MemoryUnit.hasUnit(jmMemoryVal)) {
@@ -514,6 +516,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 			effectiveConfiguration.setString(JobManagerOptions.JOB_MANAGER_HEAP_MEMORY, jmMemoryVal);
 		}
 
+		// 命令行中有tm参数
 		if (commandLine.hasOption(tmMemory.getOpt())) {
 			String tmMemoryVal = commandLine.getOptionValue(tmMemory.getOpt());
 			if (!MemorySize.MemoryUnit.hasUnit(tmMemoryVal)) {

@@ -45,6 +45,11 @@ import java.nio.ByteBuffer;
  * modify either index, so the indices need to be updated manually via {@link #setReaderIndex(int)}
  * and {@link #setSize(int)}.
  */
+
+// 网络上传输的数据会写到 Task 的 InputGate（IG） 中，经过 Task 的处理后，再由 Task 写到 ResultPartition（RS） 中。
+// 每个 Task 都包括了输入和输出，输入和输出的数据存在 Buffer 中（都是字节数据）。
+
+// Buffer 是 MemorySegment 的包装类。
 public interface Buffer {
 
 	/**

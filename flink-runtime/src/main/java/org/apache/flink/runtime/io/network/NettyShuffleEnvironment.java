@@ -80,6 +80,9 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
 
 	private final NettyShuffleEnvironmentConfiguration config;
 
+	// Flink 会在 NetworkBufferPool 中生成一定数量（默认2048）的内存块
+	// MemorySegment内存块的总数量就代表了网络传输中所有可用的内存。
+	// ShuffleEnvironment 和 NetworkBufferPool 是 Task 之间共享的，每个 TM 只会实例化一个。
 	private final NetworkBufferPool networkBufferPool;
 
 	private final ConnectionManager connectionManager;

@@ -335,6 +335,11 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 	 * <p>This method may be called by the first input channel enqueuing, or the complete
 	 * future's callback in previous input channel, or the channel writability changed event.
 	 */
+
+	// Netty 水位值机制
+	// 当输出缓冲中的字节数超过了高水位值, 则 Channel.isWritable() 会返回false。
+	// 当输出缓存中的字节数又掉到了低水位值以下, 则 Channel.isWritable() 会重新返回true。
+	// Flink 中发送数据的核心代码在 PartitionRequestQueue 中，该类是 server channel pipeline 的最后一层。
 	private void writeAndFlushNextMessageIfPossible(Channel channel) {
 		if (channelError.get() != null || !channel.isWritable()) {
 			return;

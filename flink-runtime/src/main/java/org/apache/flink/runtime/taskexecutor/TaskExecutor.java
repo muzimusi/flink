@@ -176,6 +176,49 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 	/** The state manager for this task, providing state managers per slot. */
 	private final TaskExecutorLocalStateStoresManager localStateStoresManager;
 
+	/** 网络传输中的内存管理 */
+	// （图）http://img3.tbcdn.cn/5476e8b07b923/TB14fLsHVXXXXXWXFXXXXXXXXXX
+	/** step 00 */
+	// 网络上传输的数据会写到 Task 的 InputGate（IG） 中，经过 Task 的处理后，再由 Task 写到 ResultPartition（RS） 中。
+	// 每个 Task 都包括了输入和输出，输入和输出的数据存在 Buffer 中（都是字节数据）。
+	// Buffer 是 MemorySegment 的包装类。
+	/** step 01*/
+	// TaskExecutor(TaskManager)（TM）在启动时，会先初始化 ShuffleEnvironment 对象，
+	// TM 中所有与网络相关的东西都由该类来管理（如 Netty 连接 ），NettyShuffleEnvironment其中就包括NetworkBufferPool。
+	// 根据配置，Flink 会在 NetworkBufferPool 中生成一定数量（默认2048）的内存块 MemorySegment
+	// ShuffleEnvironment 和 NetworkBufferPool 是 Task 之间共享的，每个 TM 只会实例化一个。
+	/** step 02*/
+	// Task 线程启动时，会向 ShuffleEnvironment 注册，
+	// ShuffleEnvironment 会为 Task 的 InputGate（IG）和 ResultPartition（RP） 分别创建一个 LocalBufferPool（缓冲池）并设置可申请的 MemorySegment（内存块）数量。
+	// IG 对应的缓冲池初始的内存块数量与 IG 中 InputChannel 数量一致，RP 对应的缓冲池初始的内存块数量与 RP 中的 ResultSubpartition 数量一致。
+	// 每当创建或销毁缓冲池时，NetworkBufferPool 会计算剩余空闲的内存块数量，并平均分配给已创建的缓冲池。
+	// 注意，这个过程只是指定了缓冲池所能使用的内存块数量，并没有真正分配内存块，只有当需要时才分配。
+	// 为什么要动态地为缓冲池扩容呢？因为内存越多，意味着系统可以更轻松地应对瞬时压力（如GC），不会频繁地进入反压状态，所以我们要利用起那部分闲置的内存块。
+	/** step 03*/
+	// 在 Task 线程执行过程中，当 Netty 接收端收到数据时，为了将 Netty 中的数据拷贝到 Task 中，
+	// InputChannel（实际是 RemoteInputChannel）会向其对应的缓冲池（LocalBufferPool）申请内存块（上图中的①）。
+	// 如果缓冲池中也没有可用的内存块且已申请的数量还没到池子上限，则会向 NetworkBufferPool 申请内存块（上图中的②）并交给 InputChannel 填上数据（上图中的③和④）。
+	// 如果缓冲池已申请的数量达到上限了呢？或者 NetworkBufferPool 也没有可用内存块了呢？这时候，Task 的 Netty Channel 会暂停读取，上游的发送端会立即响应停止发送，拓扑会进入反压状态。
+	// 当 Task 线程写数据到 ResultPartition 时，也会向缓冲池请求内存块，如果没有可用内存块时，会阻塞在请求内存块的地方，达到暂停写入的目的。
+	/** step 04*/
+    // 当一个内存块被消费完成之后（在输入端是指内存块中的字节被反序列化成对象了，在输出端是指内存块中的字节写入到 Netty Channel 了），会调用 Buffer.recycle() 方法，
+	// 会将内存块还给 LocalBufferPool （上图中的⑤）。
+	// 如果LocalBufferPool中当前申请的数量超过了池子容量（由于上文提到的动态容量，由于新注册的 Task 导致该池子容量变小），
+	// 则LocalBufferPool会将该内存块回收给 NetworkBufferPool（上图中的⑥）。如果没超过池子容量，则会继续留在池子中，减少反复申请的开销。
+
+	/** 反压的过程 */
+	// 本地传输：
+	// 如果 Task 1 和 Task 2 运行在同一个 worker 节点（TaskManager），该 buffer 可以直接交给下一个 Task。
+	// 一旦 Task 2 消费了该 buffer，则该 buffer 会被缓冲池1回收。如果 Task 2 的速度比 1 慢，
+	// 那么 buffer 回收的速度就会赶不上 Task 1 取 buffer 的速度，导致缓冲池1无可用的 buffer，Task 1 等待在可用的 buffer 上。最终形成 Task 1 的降速。
+	// 远程传输：
+	// 如果 Task 1 和 Task 2 运行在不同的 worker 节点上，那么 buffer 会在发送到网络（TCP Channel）后被回收。
+	// 在接收端，会从 LocalBufferPool 中申请 buffer，然后拷贝网络中的数据到 buffer 中。
+	// 如果没有可用的 buffer，会停止从 TCP 连接中读取数据。在输出端，通过 Netty 的水位值机制来保证不往网络中写入太多数据（后面会说）。
+	// 如果网络中的数据（Netty输出缓冲中的字节数）超过了高水位值，我们会等到其降到低水位值以下才继续写入数据。这保证了网络中不会有太多的数据。
+	// 如果接收端停止消费网络中的数据（由于接收端缓冲池没有可用 buffer），网络中的缓冲数据就会堆积，那么发送端也会暂停发送。
+	// 另外，这会使得发送端的缓冲池得不到回收，writer 阻塞在向 LocalBufferPool 请求 buffer，阻塞了 writer 往 ResultSubPartition 写数据。
+
 	/** The network component in the task manager. */
 	private final ShuffleEnvironment<?, ?> shuffleEnvironment;
 
@@ -190,8 +233,10 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
 	// --------- task slot allocation table -----------
 
+	// 维护自身资源池
 	private final TaskSlotTable taskSlotTable;
 
+	// 记录JobManagerConnection的容器，通俗解释：用来记录向哪些JobManager汇报
 	private final JobManagerTable jobManagerTable;
 
 	private final JobLeaderService jobLeaderService;
@@ -260,6 +305,10 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 		this.jobLeaderService = taskExecutorServices.getJobLeaderService();
 		this.taskManagerLocation = taskExecutorServices.getTaskManagerLocation();
 		this.localStateStoresManager = taskExecutorServices.getTaskManagerStateStore();
+		// TaskExecutor(TaskManager)（TM）在启动时，会先初始化ShuffleEnvironment对象，
+		// TM 中所有与网络相关的东西都由该类来管理（如 Netty 连接 ），NettyShuffleEnvironment其中就包括NetworkBufferPool。
+		// 根据配置，Flink 会在 NetworkBufferPool 中生成一定数量（默认2048）的内存块 MemorySegment
+		// ShuffleEnvironment 和 NetworkBufferPool 是 Task 之间共享的，每个 TM 只会实例化一个。
 		this.shuffleEnvironment = taskExecutorServices.getShuffleEnvironment();
 		this.kvStateService = taskExecutorServices.getKvStateService();
 		this.resourceManagerLeaderRetriever = haServices.getResourceManagerLeaderRetriever();

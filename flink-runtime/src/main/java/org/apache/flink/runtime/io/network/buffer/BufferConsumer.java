@@ -36,6 +36,10 @@ import static org.apache.flink.util.Preconditions.checkState;
  * thread using/writing to {@link BufferBuilder}. Pattern here is simple: one thread writes data to
  * {@link BufferBuilder} and there can be a different thread reading from it using {@link BufferConsumer}.
  */
+// BufferBuilder 和 BufferConsumer 构成了写入和消费 buffer 的通用模式：
+// 通过 BufferBuilder 向底层的 MemorySegment 写入数据，
+// 再通过 BufferConsumer 生成只读的 Buffer，读取 BufferBuilder 写入的数据。
+// 这两个类都不是线程安全的，但可以实现一个线程写入，另一个线程读取的效果。
 @NotThreadSafe
 public class BufferConsumer implements Closeable {
 	private final Buffer buffer;

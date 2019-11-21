@@ -55,6 +55,9 @@ import java.util.Set;
  * currently allocated (bookkeeping only). Releasing a memory segment will not add it back to the pool,
  * but make it re-claimable by the garbage collector.
  */
+// MemoryManager 是管理 Managed Memory 的类，这部分主要是在 Batch 模式下使用，在 Streaming 模式下这一块内存不会分配。
+// MemoryManager 主要通过内部接口 MemoryPool 来管理所有的 MemorySegment。
+// Managed Memory 和管理相比于 Network Buffers 的管理更为简单，因为不需要 Buffer 的那一层封装。
 public class MemoryManager {
 
 	private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);
@@ -69,6 +72,7 @@ public class MemoryManager {
 	/** The lock used on the shared structures. */
 	private final Object lock = new Object();
 
+	// 管理所有的 MemorySegment
 	/** The memory pool from which we draw memory segments. Specific to on-heap or off-heap memory */
 	private final MemoryPool memoryPool;
 
@@ -152,6 +156,7 @@ public class MemoryManager {
 			throw new IllegalArgumentException("The given number of memory bytes (" + memorySize
 					+ ") corresponds to more than MAX_INT pages.");
 		}
+		//所有可用的 MemorySegment 数量
 		this.totalNumPages = (int) numPagesLong;
 		if (this.totalNumPages < 1) {
 			throw new IllegalArgumentException("The given amount of memory amounted to less than one page.");
@@ -160,13 +165,17 @@ public class MemoryManager {
 		this.allocatedSegments = new HashMap<Object, Set<MemorySegment>>();
 		this.isPreAllocated = preAllocateMemory;
 
+		//是否需要预分配内存，Streaming 不会预分配
 		this.numNonAllocatedPages = preAllocateMemory ? 0 : this.totalNumPages;
 		final int memToAllocate = preAllocateMemory ? this.totalNumPages : 0;
 
+		// 配置项：taskmanager.memory.off-heap
 		switch (memoryType) {
+			//堆上
 			case HEAP:
 				this.memoryPool = new HybridHeapMemoryPool(memToAllocate, pageSize);
 				break;
+			//堆外
 			case OFF_HEAP:
 				if (!preAllocateMemory) {
 					LOG.warn("It is advisable to set 'taskmanager.memory.preallocate' to true when" +
@@ -620,6 +629,7 @@ public class MemoryManager {
 			this.segmentSize = segmentSize;
 
 			for (int i = 0; i < numInitialSegments; i++) {
+				//堆上直接使用byte数组
 				this.availableMemory.add(new byte[segmentSize]);
 			}
 		}
@@ -670,6 +680,7 @@ public class MemoryManager {
 			this.segmentSize = segmentSize;
 
 			for (int i = 0; i < numInitialSegments; i++) {
+				//堆外使用 DirectByteBuffer
 				this.availableMemory.add(ByteBuffer.allocateDirect(segmentSize));
 			}
 		}

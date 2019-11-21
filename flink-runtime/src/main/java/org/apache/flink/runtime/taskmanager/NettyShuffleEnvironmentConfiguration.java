@@ -298,13 +298,21 @@ public class NettyShuffleEnvironmentConfiguration {
 		final int segmentSize = ConfigurationParserUtils.getPageSize(config);
 
 		final long networkBufBytes;
+		// 配置中包含   taskmanager.network.memory.fraction
+		// 或配置包含   taskmanager.network.memory.min
+		// 或配置包含   taskmanager.network.memory.max
+		// 配置不包含   taskmanager.network.numberOfBuffers（老版本配置）
 		if (hasNewNetworkConfig(config)) {
+			// taskmanager.network.memory.fraction （default：0.1）
 			float networkBufFraction = config.getFloat(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_FRACTION);
+			// (ytm - cutoff) * taskmanager.network.memory.fraction
 			long networkBufSize = (long) (totalJavaMemorySize * networkBufFraction);
 			networkBufBytes = calculateNewNetworkBufferMemory(config, networkBufSize, totalJavaMemorySize);
-		} else {
+		}
+		// 配置中只包含 taskmanager.network.numberOfBuffers
+		else {
 			// use old (deprecated) network buffers parameter
-			int numNetworkBuffers = config.getInteger(NettyShuffleEnvironmentOptions.NETWORK_NUM_BUFFERS);
+			int numNetworkBuffers = config.getInteger(NettyShuffleEnvironmentOptions.NETWORK_NUM_BUFFERS); // taskmanager.network.numberOfBuffers
 			networkBufBytes = (long) numNetworkBuffers * (long) segmentSize;
 
 			checkOldNetworkConfig(numNetworkBuffers);
@@ -336,14 +344,20 @@ public class NettyShuffleEnvironmentConfiguration {
 	 * @return memory to use for network buffers (in bytes)
 	 */
 	private static long calculateNewNetworkBufferMemory(Configuration config, long networkBufSize, long maxJvmHeapMemory) {
+		// taskmanager.network.memory.fraction
 		float networkBufFraction = config.getFloat(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_FRACTION);
+		// taskmanager.network.memory.min
 		long networkBufMin = MemorySize.parse(config.getString(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MIN)).getBytes();
+		// taskmanager.network.memory.max
 		long networkBufMax = MemorySize.parse(config.getString(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MAX)).getBytes();
 
+		// 合法检验：taskmanager.memory.segment-size 必须大于等于4K 且值为2的n幂次数
 		int pageSize = ConfigurationParserUtils.getPageSize(config);
 
+		// 合法检验 taskmanager.network.memory.fraction; taskmanager.network.memory.max; taskmanager.network.memory.min
 		checkNewNetworkConfig(pageSize, networkBufFraction, networkBufMin, networkBufMax);
 
+		//networkBufBytes = min(taskmanager.network.memory.max, max(taskmanager.network.memory.min, (ytm - cutoff) * taskmanager.network.memory.fraction))
 		long networkBufBytes = Math.min(networkBufMax, Math.max(networkBufMin, networkBufSize));
 
 		ConfigurationParserUtils.checkConfigParameter(networkBufBytes < maxJvmHeapMemory,
@@ -387,20 +401,24 @@ public class NettyShuffleEnvironmentConfiguration {
 		final long networkBufMin,
 		final long networkBufMax) throws IllegalConfigurationException {
 
+		// taskmanager.network.memory.fraction合法校验 范围(0,1)
 		ConfigurationParserUtils.checkConfigParameter(networkBufFraction > 0.0f && networkBufFraction < 1.0f, networkBufFraction,
 			NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_FRACTION.key(),
 			"Network buffer memory fraction of the free memory must be between 0.0 and 1.0");
 
+		// taskmanager.network.memory.min合法校验
 		ConfigurationParserUtils.checkConfigParameter(networkBufMin >= pageSize, networkBufMin,
 			NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MIN.key(),
 			"Minimum memory for network buffers must allow at least one network " +
 				"buffer with respect to the memory segment size");
 
+		// taskmanager.network.memory.max合法校验
 		ConfigurationParserUtils.checkConfigParameter(networkBufMax >= pageSize, networkBufMax,
 			NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MAX.key(),
 			"Maximum memory for network buffers must allow at least one network " +
 				"buffer with respect to the memory segment size");
 
+		// taskmanager.network.memory.max合法校验
 		ConfigurationParserUtils.checkConfigParameter(networkBufMax >= networkBufMin, networkBufMax,
 			NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MAX.key(),
 			"Maximum memory for network buffers must not be smaller than minimum memory (" +
@@ -417,10 +435,10 @@ public class NettyShuffleEnvironmentConfiguration {
 	@SuppressWarnings("deprecation")
 	@VisibleForTesting
 	public static boolean hasNewNetworkConfig(final Configuration config) {
-		return config.contains(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_FRACTION) ||
-			config.contains(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MIN) ||
-			config.contains(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MAX) ||
-			!config.contains(NettyShuffleEnvironmentOptions.NETWORK_NUM_BUFFERS);
+		return config.contains(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_FRACTION) || // taskmanager.network.memory.fraction
+			config.contains(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MIN) ||		  // taskmanager.network.memory.min
+			config.contains(NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_MAX) ||         // taskmanager.network.memory.max
+			!config.contains(NettyShuffleEnvironmentOptions.NETWORK_NUM_BUFFERS);				  // taskmanager.network.numberOfBuffers
 	}
 
 	/**

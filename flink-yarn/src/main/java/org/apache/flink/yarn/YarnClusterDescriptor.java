@@ -72,6 +72,8 @@ public class YarnClusterDescriptor extends AbstractYarnClusterDescriptor {
 		jobGraph.setAllowQueuedScheduling(true);
 
 		try {
+			// ClusterSpecification对象持有该集群的4个基本参数：JobManager内存大小、TaskManager内存大小、TaskManager数量、每个TaskManager的slot数。
+			// 而deployInternal()方法在开头调用了AbstractYarnClusterDescriptor抽象类的validateClusterSpecification()方法，用于校验ClusterSpecification是否合法。
 			return deployInternal(
 				clusterSpecification,
 				"Flink per-job cluster",

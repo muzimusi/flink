@@ -55,6 +55,14 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * the buffers for the network data transfer. When new local buffer pools are created, the
  * NetworkBufferPool dynamically redistributes the buffers between the pools.
  */
+// 根据配置，Flink 会在 NetworkBufferPool 中生成一定数量（默认2048）的内存块 MemorySegment
+// 内存块的总数量就代表了网络传输中所有可用的内存。
+// ShuffleEnvironment 和 NetworkBufferPool 是 Task 之间共享的，每个 TM 只会实例化一个。
+
+// BufferPoolFactory 接口是 BufferPool 的工厂，用于创建及销毁 BufferPool。
+// NetworkBufferPool 是 BufferPoolFactory 的具体实现类。
+// 所以按照 BufferPoolFactory -> BufferPool -> Buffer 这样的结构进行组织。
+// NetworkBufferPool 在初始化的时候创建一组 MemorySegment，这些 MemorySegment 会在所有的 LocalBufferPool 之间进行均匀分配。
 public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvider {
 
 	private static final Logger LOG = LoggerFactory.getLogger(NetworkBufferPool.class);
@@ -63,6 +71,7 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 
 	private final int memorySegmentSize;
 
+	//所有可用的MemorySegment，阻塞队列
 	private final ArrayBlockingQueue<MemorySegment> availableMemorySegments;
 
 	private volatile boolean isDestroyed;
@@ -116,6 +125,7 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 
 		try {
 			for (int i = 0; i < numberOfSegmentsToAllocate; i++) {
+				//NetworkBufferPool 使用的 MemorySegment 全是堆外内存
 				availableMemorySegments.add(MemorySegmentFactory.allocateUnpooledOffHeapMemory(segmentSize, null));
 			}
 		}

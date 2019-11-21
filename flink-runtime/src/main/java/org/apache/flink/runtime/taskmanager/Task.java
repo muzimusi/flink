@@ -125,6 +125,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
  * <p>Each Task is run by one dedicated thread.
  */
+// 物理执行图中具体的task
 public class Task implements Runnable, TaskActions, PartitionProducerStateProvider, CheckpointListener {
 
 	/** The class logger. */
@@ -403,6 +404,7 @@ public class Task implements Runnable, TaskActions, PartitionProducerStateProvid
 		invokableHasBeenCanceled = new AtomicBoolean(false);
 
 		// finally, create the executing thread, but do not start it
+		// Task 实现了 Runnable接口，这里传入自身
 		executingThread = new Thread(TASK_THREADS_GROUP, this, taskNameWithSubtask);
 	}
 
@@ -524,6 +526,13 @@ public class Task implements Runnable, TaskActions, PartitionProducerStateProvid
 	/**
 	 * The core work method that bootstraps the task and executes its code.
 	 */
+	// 启动task，执行代码
+	// Task 线程启动时，会向 NetworkEnvironment 注册，
+	// ShuffleEnvironment 会为 Task 的 InputGate（IG）和 ResultPartition（RP） 分别创建一个 LocalBufferPool（缓冲池）并设置可申请的 MemorySegment（内存块）数量。
+	// IG 对应的缓冲池初始的内存块数量与 IG 中 InputChannel 数量一致，RP 对应的缓冲池初始的内存块数量与 RP 中的 ResultSubpartition 数量一致。
+	// 不过，每当创建或销毁缓冲池时，NetworkBufferPool 会计算剩余空闲的内存块数量，并平均分配给已创建的缓冲池。
+	// 注意，这个过程只是指定了缓冲池所能使用的内存块数量，并没有真正分配内存块，只有当需要时才分配。
+	// 为什么要动态地为缓冲池扩容呢？因为内存越多，意味着系统可以更轻松地应对瞬时压力（如GC），不会频繁地进入反压状态，所以我们要利用起那部分闲置的内存块
 	@Override
 	public void run() {
 		try {
@@ -618,6 +627,8 @@ public class Task implements Runnable, TaskActions, PartitionProducerStateProvid
 
 			LOG.info("Registering task at network: {}.", this);
 
+			// Task 线程启动时，会向 ShuffleEnvironment 注册
+			// ShuffleEnvironment 会为 Task 的 InputGate（IG）和 ResultPartition（RP） 分别创建一个 LocalBufferPool（缓冲池）并设置可申请的 MemorySegment（内存块）数量
 			setupPartitionsAndGates(consumableNotifyingPartitionWriters, inputGates);
 
 			for (ResultPartitionWriter partitionWriter : consumableNotifyingPartitionWriters) {
@@ -702,6 +713,7 @@ public class Task implements Runnable, TaskActions, PartitionProducerStateProvid
 			executingThread.setContextClassLoader(userCodeClassLoader);
 
 			// run the invokable
+			// 调用AbstractInvokable的invoke方法，会执行具体算子(如: StreamTask)的invoke方法
 			invokable.invoke();
 
 			// make sure, we enter the catch block if the task leaves the invoke() method due

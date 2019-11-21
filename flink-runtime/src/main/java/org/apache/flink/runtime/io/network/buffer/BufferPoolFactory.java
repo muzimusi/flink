@@ -24,6 +24,13 @@ import java.util.Optional;
 /**
  * A factory for buffer pools.
  */
+
+// BufferPoolFactory 接口是 BufferPool 的工厂，用于创建及销毁 BufferPool。
+// NetworkBufferPool 是 BufferPoolFactory 的具体实现类。
+
+// 所以按照 BufferPoolFactory -> BufferPool -> Buffer 这样的结构进行组织。
+// NetworkBufferPool 在初始化的时候创建一组 MemorySegment，这些 MemorySegment 会在所有的 LocalBufferPool 之间进行均匀分配。
+
 public interface BufferPoolFactory {
 
 	/**

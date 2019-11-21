@@ -190,7 +190,12 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		writeAndFlushNextMessageIfPossible(ctx.channel());
 	}
 
+	// Netty 水位值机制
+	// 当输出缓冲中的字节数超过了高水位值, 则 Channel.isWritable() 会返回false。
+	// 当输出缓存中的字节数又掉到了低水位值以下, 则 Channel.isWritable() 会重新返回true。
 	private void writeAndFlushNextMessageIfPossible(final Channel channel) throws IOException {
+		// channel.isWritable() 配合 WRITE_BUFFER_LOW_WATER_MARK
+		// 和 WRITE_BUFFER_HIGH_WATER_MARK 实现发送端的流量控制
 		if (fatalError || !channel.isWritable()) {
 			return;
 		}
@@ -231,6 +236,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 						registerAvailableReader(reader);
 					}
 
+					// 构造一个response返回给客户端
 					BufferResponse msg = new BufferResponse(
 						next.buffer(),
 						reader.getSequenceNumber(),
@@ -239,6 +245,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
 					// Write and flush and wait until this is done before
 					// trying to continue with the next buffer.
+					// 将该response发到netty channel, 当写成功后,
+					// 通过注册的writeListener又会回调进来, 从而不断地消费 queue 中的请求
 					channel.writeAndFlush(msg).addListener(writeListener);
 
 					return;

@@ -43,6 +43,25 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p><strong>NOTE:</strong> before using this buffer in the netty stack, a buffer allocator must be
  * set via {@link #setAllocator(ByteBufAllocator)}!
  */
+// Buffer 是 MemorySegment 的包装类
+
+// Buffer 接口是对池化的 MemorySegment 的包装，带有引用计数，类似与 Netty 的 ByteBuf。
+// Buffer也使用两个指针分别表示写入的位置和读取的位置。Buffer 的具体实现实现类 NetworkBuffer 继承自 Netty 的 AbstractReferenceCountedByteBuf，
+// 这使得它很容易地集成了引用计数和读写指针的功能。同时，在非 Netty 场景下使用时，Buffer 也提供了 java.nio.ByteBuffer 的包装，但需要手动设置读写指针的位置。
+// ReadOnlySlicedNetworkBuffer 则提供了只读模式的 buffer 的包装。
+
+// BufferBuilder 和 BufferConsumer 构成了写入和消费 buffer 的通用模式：
+// 通过 BufferBuilder 向底层的 MemorySegment 写入数据，
+// 再通过 BufferConsumer 生成只读的 Buffer，读取 BufferBuilder 写入的数据。
+// 这两个类都不是线程安全的，但可以实现一个线程写入，另一个线程读取的效果。
+
+// BufferPool 接口继承了 BufferProvider 和 BufferRecycler 接口，提供了申请以及回收 Buffer 的功能。
+// LocalBufferPool 是 BufferPool 的具体实现，LocalBufferPool 中 Buffer 的数量是可以动态调整的。
+
+// BufferPoolFactory 接口是 BufferPool 的工厂，用于创建及销毁 BufferPool。NetworkBufferPool 是 BufferPoolFactory 的具体实现类。
+// 所以按照 BufferPoolFactory -> BufferPool -> Buffer 这样的结构进行组织。
+// NetworkBufferPool 在初始化的时候创建一组 MemorySegment，这些 MemorySegment 会在所有的 LocalBufferPool 之间进行均匀分配。
+
 public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Buffer {
 
 	/** The backing {@link MemorySegment} instance. */

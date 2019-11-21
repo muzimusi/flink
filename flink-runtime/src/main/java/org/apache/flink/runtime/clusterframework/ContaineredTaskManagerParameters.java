@@ -111,10 +111,19 @@ public class ContaineredTaskManagerParameters implements java.io.Serializable {
 	 *
 	 * @return cutoff memory size used by container.
 	 */
+
+	// containerMemoryMB 为 -ytm 参数值大小
+	// 总结：在Flink on YARN时，我们设定的TM内存实际上是Container的内存。
+	// 也就是说，一个TM能利用的总内存（包含堆内和堆外）是：
+	/** TaskManager内存分配逻辑 */
+	// tm_total_memory = taskmanager.heap.size - max[containerized.heap-cutoff-min, taskmanager.heap.size * containerized.heap-cutoff-ratio]
+	// -yim 2048 -ytm 4096
+	// tm_total_memory = 4096 - max[600, 4096 * 0.25] = 3072
 	public static long calculateCutoffMB(Configuration config, long containerMemoryMB) {
 		Preconditions.checkArgument(containerMemoryMB > 0);
 
 		// (1) check cutoff ratio
+		// containerized.heap-cutoff-ratio (default:0.25f)
 		final float memoryCutoffRatio = config.getFloat(
 			ResourceManagerOptions.CONTAINERIZED_HEAP_CUTOFF_RATIO);
 
@@ -125,6 +134,7 @@ public class ContaineredTaskManagerParameters implements java.io.Serializable {
 		}
 
 		// (2) check min cutoff value
+		// containerized.heap-cutoff-min (default 600)
 		final int minCutoff = config.getInteger(
 			ResourceManagerOptions.CONTAINERIZED_HEAP_CUTOFF_MIN);
 
@@ -135,6 +145,7 @@ public class ContaineredTaskManagerParameters implements java.io.Serializable {
 		}
 
 		// (3) check between heap and off-heap
+		// 具体的预留值
 		long cutoff = (long) (containerMemoryMB * memoryCutoffRatio);
 		if (cutoff < minCutoff) {
 			cutoff = minCutoff;

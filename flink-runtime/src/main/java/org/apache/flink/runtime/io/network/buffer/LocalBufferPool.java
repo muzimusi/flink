@@ -45,6 +45,10 @@ import static org.apache.flink.util.Preconditions.checkArgument;
  * will then lazily return the required number of buffers to the {@link NetworkBufferPool} to
  * match its new size.
  */
+
+// BufferPool 接口继承了 BufferProvider 和 BufferRecycler 接口，提供了申请以及回收 Buffer 的功能。
+// LocalBufferPool 是 BufferPool 的具体实现，LocalBufferPool 中 Buffer 的数量是可以动态调整的。
+
 class LocalBufferPool implements BufferPool {
 	private static final Logger LOG = LoggerFactory.getLogger(LocalBufferPool.class);
 
