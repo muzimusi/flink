@@ -30,6 +30,7 @@ import java.util.Objects;
 /**
  * Contains information about the TaskManager metrics.
  */
+// TaskManager Metrics 信息
 public class TaskManagerMetricsInfo {
 
 	public static final String FIELD_NAME_HEAP_USED = "heapUsed";
@@ -119,6 +120,8 @@ public class TaskManagerMetricsInfo {
 	@JsonProperty(FIELD_NAME_GARBAGE_COLLECTORS)
 	private final List<GarbageCollectorInfo> garbageCollectorsInfo;
 
+	// TaskManagerMetricsInfo中包含各种参数指标
+	// 创建时机: TaskManagerDetailsHandler.createTaskManagerMetricsInfo
 	@JsonCreator
 	public TaskManagerMetricsInfo(
 			@JsonProperty(FIELD_NAME_HEAP_USED) long heapUsed,

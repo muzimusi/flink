@@ -107,6 +107,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 		}
 	}
 
+	// 获取metrics
 	private void fetchMetrics() {
 		LOG.debug("Start fetching metrics.");
 
@@ -163,7 +164,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 								.stream()
 								.map(
 									(Tuple2<ResourceID, String> tuple) -> {
-										queryServiceRetriever.retrieveService(tuple.f1)
+										queryServiceRetriever.retrieveService(tuple.f1) // 获取查询地址
 											.thenAcceptAsync(this::queryMetrics, executor);
 										return tuple.f0.getResourceIdString();
 									}

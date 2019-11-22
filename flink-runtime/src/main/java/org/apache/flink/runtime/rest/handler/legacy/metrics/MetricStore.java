@@ -106,6 +106,7 @@ public class MetricStore {
 	 * @return TaskManagerMetricStore for the given ID, or null if no store for the given argument exists
 	 */
 	public synchronized TaskManagerMetricStore getTaskManagerMetricStore(String tmID) {
+		// 注意是: unmodifiable
 		return tmID == null ? null : TaskManagerMetricStore.unmodifiable(taskManagers.get(tmID));
 	}
 
@@ -280,6 +281,7 @@ public class MetricStore {
 	 */
 	@ThreadSafe
 	public static class ComponentMetricStore {
+		// 用来存放各种指标
 		public final Map<String, String> metrics;
 
 		private ComponentMetricStore() {

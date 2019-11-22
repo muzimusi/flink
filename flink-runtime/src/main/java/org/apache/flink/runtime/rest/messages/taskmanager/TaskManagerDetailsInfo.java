@@ -63,6 +63,7 @@ public class TaskManagerDetailsInfo extends TaskManagerInfo {
 		this.taskManagerMetrics = Preconditions.checkNotNull(taskManagerMetrics);
 	}
 
+	// TaskManagerDetailsInfo会包含TaskManagerInfo和TaskManagerMetricsInfo
 	public TaskManagerDetailsInfo(TaskManagerInfo taskManagerInfo, TaskManagerMetricsInfo taskManagerMetrics) {
 		this(
 			taskManagerInfo.getResourceId(),

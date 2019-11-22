@@ -139,6 +139,7 @@ public abstract class AbstractDispatcherResourceManagerComponentFactory<T extend
 				"DispatcherRestEndpoint");
 
 			final long updateInterval = configuration.getLong(MetricOptions.METRIC_FETCHER_UPDATE_INTERVAL);
+			// 创建 MetricFetcher
 			final MetricFetcher metricFetcher = updateInterval == 0
 				? VoidMetricFetcher.INSTANCE
 				: MetricFetcherImpl.fromConfiguration(
