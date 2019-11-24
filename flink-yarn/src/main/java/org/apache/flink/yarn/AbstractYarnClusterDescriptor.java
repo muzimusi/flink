@@ -416,7 +416,7 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 			// ClusterSpecification and the configured memory requirements
 			/**
 			 *    +-------------------+----------------+----------------+
-			 *    | 						内存划分 					|
+			 *    | 						内存划分 					    |
 			 *    +-------------------+----------------+----------------+
 			 * 	  |        free       | memory manager | network buffer |
 			 * 	  +-------------------+----------------+----------------+

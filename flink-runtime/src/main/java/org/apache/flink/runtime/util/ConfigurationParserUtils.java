@@ -43,6 +43,7 @@ public class ConfigurationParserUtils {
 	 */
 	public static long getManagedMemorySize(Configuration configuration) {
 		long managedMemorySize;
+		// taskmanager.memory.size
 		String managedMemorySizeDefaultVal = TaskManagerOptions.MANAGED_MEMORY_SIZE.defaultValue();
 		if (!configuration.getString(TaskManagerOptions.MANAGED_MEMORY_SIZE).equals(managedMemorySizeDefaultVal)) {
 			try {
@@ -71,6 +72,7 @@ public class ConfigurationParserUtils {
 	 * @return fraction of managed memory
 	 */
 	public static float getManagedMemoryFraction(Configuration configuration) {
+		// taskmanager.memory.fraction
 		float managedMemoryFraction = configuration.getFloat(TaskManagerOptions.MANAGED_MEMORY_FRACTION);
 
 		checkConfigParameter(managedMemoryFraction > 0.0f && managedMemoryFraction < 1.0f, managedMemoryFraction,
@@ -89,6 +91,7 @@ public class ConfigurationParserUtils {
 	public static MemoryType getMemoryType(Configuration configuration) {
 		// check whether we use heap or off-heap memory
 		final MemoryType memType;
+		// taskmanager.memory.off-heap
 		if (configuration.getBoolean(TaskManagerOptions.MEMORY_OFF_HEAP)) {
 			memType = MemoryType.OFF_HEAP;
 		} else {

@@ -334,12 +334,15 @@ public class TaskManagerServices {
 		// it strictly needs to happen AFTER the network stack has been initialized
 
 		// check if a value has been configured
+		// taskmanager.memory.size
 		long configuredMemory = taskManagerServicesConfiguration.getConfiguredMemory();
 
+		// taskmanager.memory.off-heap
 		MemoryType memType = taskManagerServicesConfiguration.getMemoryType();
 
 		final long memorySize;
 
+		// taskmanager.memory.preallocate
 		boolean preAllocateMemory = taskManagerServicesConfiguration.isPreAllocateMemory();
 
 		if (configuredMemory > 0) {
@@ -351,6 +354,7 @@ public class TaskManagerServices {
 			memorySize = configuredMemory << 20; // megabytes to bytes
 		} else {
 			// similar to #calculateNetworkBufferMemory(TaskManagerServicesConfiguration tmConfig)
+			// taskmanager.memory.fraction
 			float memoryFraction = taskManagerServicesConfiguration.getMemoryFraction();
 
 			if (memType == MemoryType.HEAP) {
@@ -428,6 +432,7 @@ public class TaskManagerServices {
 		final long totalProcessMemory = megabytesToBytes(totalJavaMemorySizeMB);
 		// NetWork Buffer
 		final long networkReservedMemory = getReservedNetworkMemory(config, totalProcessMemory);
+		// Flink Managed Memory = total - NetWork Buffer
 		final long heapAndManagedMemory = totalProcessMemory - networkReservedMemory;
 
 		// taskmanager.memory.off-heap 表示是否开启堆外内存

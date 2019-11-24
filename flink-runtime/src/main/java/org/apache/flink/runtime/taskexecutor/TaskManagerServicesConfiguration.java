@@ -263,6 +263,7 @@ public class TaskManagerServicesConfiguration {
 
 		final QueryableStateConfiguration queryableStateConfig = QueryableStateConfiguration.fromConfiguration(configuration);
 
+		// taskmanager.memory.preallocate
 		boolean preAllocateMemory = configuration.getBoolean(TaskManagerOptions.MANAGED_MEMORY_PRE_ALLOCATE);
 
 		long timerServiceShutdownTimeout = AkkaUtils.getTimeout(configuration).toMillis();
@@ -281,10 +282,10 @@ public class TaskManagerServicesConfiguration {
 			localRecoveryMode,
 			queryableStateConfig,
 			ConfigurationParserUtils.getSlot(configuration),
-			ConfigurationParserUtils.getManagedMemorySize(configuration),
-			ConfigurationParserUtils.getMemoryType(configuration),
-			preAllocateMemory,
-			ConfigurationParserUtils.getManagedMemoryFraction(configuration),
+			ConfigurationParserUtils.getManagedMemorySize(configuration), // taskmanager.memory.size
+			ConfigurationParserUtils.getMemoryType(configuration), // taskmanager.memory.off-heap
+			preAllocateMemory, // taskmanager.memory.preallocate
+			ConfigurationParserUtils.getManagedMemoryFraction(configuration), // taskmanager.memory.fraction
 			ConfigurationParserUtils.getPageSize(configuration),
 			timerServiceShutdownTimeout,
 			retryingRegistrationConfiguration,

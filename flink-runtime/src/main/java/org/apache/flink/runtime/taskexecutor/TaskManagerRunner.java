@@ -352,12 +352,13 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 
 		InetAddress remoteAddress = InetAddress.getByName(rpcService.getAddress());
 
+		// 这里会做taskmanager的内存划分
 		TaskManagerServicesConfiguration taskManagerServicesConfiguration =
 			TaskManagerServicesConfiguration.fromConfiguration(
 				configuration,
 				resourceID,
 				remoteAddress,
-				EnvironmentInformation.getSizeOfFreeHeapMemoryWithDefrag(),
+				EnvironmentInformation.getSizeOfFreeHeapMemoryWithDefrag(), // 出发gc
 				EnvironmentInformation.getMaxJvmHeapMemory(),
 				localCommunicationOnly);
 

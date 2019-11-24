@@ -120,7 +120,7 @@ public class EnvironmentInformation {
 	 * 
 	 * @return The maximum JVM heap size, in bytes.
 	 */
-	public static long getMaxJvmHeapMemory() {
+	public static long 	getMaxJvmHeapMemory() {
 		final long maxMemory = Runtime.getRuntime().maxMemory();
 		if (maxMemory != Long.MAX_VALUE) {
 			// we have the proper max memory

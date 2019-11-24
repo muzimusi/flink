@@ -295,6 +295,7 @@ public class NettyShuffleEnvironmentConfiguration {
 	 */
 	@SuppressWarnings("deprecation")
 	public static long calculateNetworkBufferMemory(long totalJavaMemorySize, Configuration config) {
+		// 合法检验：taskmanager.memory.segment-size 必须大于等于4K 且值为2的n幂次数
 		final int segmentSize = ConfigurationParserUtils.getPageSize(config);
 
 		final long networkBufBytes;
@@ -360,6 +361,7 @@ public class NettyShuffleEnvironmentConfiguration {
 		//networkBufBytes = min(taskmanager.network.memory.max, max(taskmanager.network.memory.min, (ytm - cutoff) * taskmanager.network.memory.fraction))
 		long networkBufBytes = Math.min(networkBufMax, Math.max(networkBufMin, networkBufSize));
 
+		// 合法检验
 		ConfigurationParserUtils.checkConfigParameter(networkBufBytes < maxJvmHeapMemory,
 			"(" + networkBufFraction + ", " + networkBufMin + ", " + networkBufMax + ")",
 			"(" + NettyShuffleEnvironmentOptions.NETWORK_BUFFERS_MEMORY_FRACTION.key() + ", " +
