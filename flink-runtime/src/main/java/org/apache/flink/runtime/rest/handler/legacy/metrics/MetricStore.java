@@ -171,10 +171,13 @@ public class MetricStore {
 		return ComponentMetricStore.unmodifiable(jobManager);
 	}
 
+	// 添加Metric
 	@VisibleForTesting
 	public void add(MetricDump metric) {
 		try {
+			// 查询类别
 			QueryScopeInfo info = metric.scopeInfo;
+			// 存储taskManager metric
 			TaskManagerMetricStore tm;
 			JobMetricStore job;
 			TaskMetricStore task;
@@ -199,6 +202,7 @@ public class MetricStore {
 						String gcName = name.substring("Status.JVM.GarbageCollector.".length(), name.lastIndexOf('.'));
 						tm.addGarbageCollectorName(gcName);
 					}
+					// 添加metric
 					addMetric(tm.metrics, name, metric);
 					break;
 				case INFO_CATEGORY_JOB:
@@ -242,6 +246,11 @@ public class MetricStore {
 	}
 
 	private void addMetric(Map<String, String> target, String name, MetricDump metric) {
+		// 不同的metric type
+		// counter: 计数器
+		// gauge:  单个指标值
+		// histogram: 直方图
+		// meter: 单位时间内的指标值
 		switch (metric.getCategory()) {
 			case METRIC_CATEGORY_COUNTER:
 				MetricDump.CounterDump counter = (MetricDump.CounterDump) metric;
@@ -249,6 +258,7 @@ public class MetricStore {
 				break;
 			case METRIC_CATEGORY_GAUGE:
 				MetricDump.GaugeDump gauge = (MetricDump.GaugeDump) metric;
+				// gauge指标值存入map
 				target.put(name, gauge.value);
 				break;
 			case METRIC_CATEGORY_HISTOGRAM:
@@ -279,6 +289,7 @@ public class MetricStore {
 	/**
 	 * Structure containing metrics of a single component.
 	 */
+	// 存储单个组件的metric信息
 	@ThreadSafe
 	public static class ComponentMetricStore {
 		// 用来存放各种指标
@@ -314,15 +325,19 @@ public class MetricStore {
 	/**
 	 * Sub-structure containing metrics of a single TaskManager.
 	 */
+	// 存储TaskManagerMetric
+	// TaskManagerMetric包含 [1.metrics 2.garbageCollectors]
 	@ThreadSafe
 	public static class TaskManagerMetricStore extends ComponentMetricStore {
 		public final Set<String> garbageCollectorNames;
 
 		private TaskManagerMetricStore() {
+			// Map<String, String> metrics 用来存放metircs指标
 			this(new ConcurrentHashMap<>(), ConcurrentHashMap.newKeySet());
 		}
 
 		private TaskManagerMetricStore(Map<String, String> metrics, Set<String> garbageCollectorNames) {
+			// 传递给父类ComponentMetricStore
 			super(metrics);
 			this.garbageCollectorNames = checkNotNull(garbageCollectorNames);
 		}
@@ -331,6 +346,7 @@ public class MetricStore {
 			garbageCollectorNames.add(name);
 		}
 
+		// 当调用MetricStore.getTaskManagerMetricStore时创建TaskManagerMetricStore
 		private static TaskManagerMetricStore unmodifiable(TaskManagerMetricStore source) {
 			if (source == null) {
 				return null;
@@ -346,6 +362,7 @@ public class MetricStore {
 	 */
 	@ThreadSafe
 	private static class JobMetricStore extends ComponentMetricStore {
+		// 存储全部Task级别的Metric
 		private final Map<String, TaskMetricStore> tasks = new ConcurrentHashMap<>();
 
 		public TaskMetricStore getTaskMetricStore(String taskID) {

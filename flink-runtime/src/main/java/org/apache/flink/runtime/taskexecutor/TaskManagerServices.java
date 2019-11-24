@@ -359,6 +359,7 @@ public class TaskManagerServices {
 
 			// taskmanager.memory.off-heap: false
 			if (memType == MemoryType.HEAP) {
+				// 先主动触发GC，然后获取可用的堆内存量。可见，如果没有意外，程序初始化时该方法返回的值与jvm的-Xms/-Xmx相同；
 				long freeHeapMemoryWithDefrag = taskManagerServicesConfiguration.getFreeHeapMemoryWithDefrag();
 				// network buffers allocated off-heap -> use memoryFraction of the available heap:
 				long relativeMemSize = (long) (freeHeapMemoryWithDefrag * memoryFraction);

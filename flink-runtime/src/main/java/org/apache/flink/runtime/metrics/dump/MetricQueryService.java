@@ -114,6 +114,7 @@ public class MetricQueryService extends RpcEndpoint implements MetricQueryServic
 
 	@Override
 	public CompletableFuture<MetricDumpSerialization.MetricSerializationResult> queryMetrics(Time timeout) {
+		// akka 异步调用
 		return callAsync(() -> enforceSizeLimit(serializer.serialize(counters, gauges, histograms, meters)), timeout);
 	}
 

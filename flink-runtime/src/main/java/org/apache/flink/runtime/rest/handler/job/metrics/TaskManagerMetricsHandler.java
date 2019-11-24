@@ -39,6 +39,7 @@ import java.util.Map;
  *
  * @see MetricStore#getTaskManagerMetricStore(String)
  */
+// 接受并处理TaskManagerMetricsHeaders
 public class TaskManagerMetricsHandler extends AbstractMetricsHandler<TaskManagerMetricsMessageParameters> {
 
 	public TaskManagerMetricsHandler(

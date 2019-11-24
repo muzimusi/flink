@@ -102,6 +102,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 			long currentTime = System.currentTimeMillis();
 			if (currentTime - lastUpdateTime > updateInterval) {
 				lastUpdateTime = currentTime;
+				// 获取metric
 				fetchMetrics();
 			}
 		}
@@ -210,7 +211,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 		LOG.debug("Query metrics for {}.", queryServiceGateway.getAddress());
 
 		queryServiceGateway
-			.queryMetrics(timeout)
+			.queryMetrics(timeout) // 开始查询
 			.whenCompleteAsync(
 				(MetricDumpSerialization.MetricSerializationResult result, Throwable t) -> {
 					if (t != null) {

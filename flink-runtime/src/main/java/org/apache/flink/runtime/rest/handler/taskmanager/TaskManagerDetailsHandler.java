@@ -80,6 +80,7 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 
 		CompletableFuture<TaskManagerInfo> taskManagerInfoFuture = gateway.requestTaskManagerInfo(taskManagerResourceId, timeout);
 
+		// 拉取metric信息
 		metricFetcher.update();
 
 		return taskManagerInfoFuture.thenApply(

@@ -369,7 +369,7 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
 	 * @param <V> Return type of the callable
 	 * @return Future for the result of the callable.
 	 */
-	protected <V> CompletableFuture<V> callAsync(Callable<V> callable, Time timeout) {
+	protected <V> CompletableFuture<V> 	callAsync(Callable<V> callable, Time timeout) {
 		return rpcServer.callAsync(callable, timeout);
 	}
 

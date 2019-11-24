@@ -33,6 +33,9 @@ import java.util.Objects;
 // TaskManager Metrics 信息
 public class TaskManagerMetricsInfo {
 
+	/**
+	 * 包含各种metrics
+	 */
 	public static final String FIELD_NAME_HEAP_USED = "heapUsed";
 
 	public static final String FIELD_NAME_HEAP_COMMITTED = "heapCommitted";

@@ -38,6 +38,7 @@ public class TaskManagerDetailsInfo extends TaskManagerInfo {
 
 	public static final String FIELD_NAME_METRICS = "metrics";
 
+	// TaskManagerDetailsInfo会包含监控信息TaskManagerMetricsInfo
 	@JsonProperty(FIELD_NAME_METRICS)
 	private final TaskManagerMetricsInfo taskManagerMetrics;
 
