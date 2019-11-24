@@ -192,12 +192,14 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 		this.checkpointStatsCache = new CheckpointStatsCache(
 			restConfiguration.getMaxCheckpointStatisticCacheEntries());
 
+		// metricFetcher
 		this.metricFetcher = metricFetcher;
 
 		this.leaderElectionService = Preconditions.checkNotNull(leaderElectionService);
 		this.fatalErrorHandler = Preconditions.checkNotNull(fatalErrorHandler);
 	}
 
+	// 初始化各种请求handlers
 	@Override
 	protected List<Tuple2<RestHandlerSpecification, ChannelInboundHandler>> initializeHandlers(final CompletableFuture<String> localAddressFuture) {
 		ArrayList<Tuple2<RestHandlerSpecification, ChannelInboundHandler>> handlers = new ArrayList<>(30);
@@ -318,6 +320,7 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 			TaskManagersHeaders.getInstance(),
 			resourceManagerRetriever);
 
+		// TaskManagerDetails请求处理类
 		TaskManagerDetailsHandler taskManagerDetailsHandler = new TaskManagerDetailsHandler(
 			leaderRetriever,
 			timeout,

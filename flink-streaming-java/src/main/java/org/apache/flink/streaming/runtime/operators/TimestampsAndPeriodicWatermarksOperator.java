@@ -31,6 +31,7 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
  *
  * @param <T> The type of the input elements
  */
+// 周期性（watermarkInterval）处理Timestamps Watermarks的算子
 public class TimestampsAndPeriodicWatermarksOperator<T>
 		extends AbstractUdfStreamOperator<T, AssignerWithPeriodicWatermarks<T>>
 		implements OneInputStreamOperator<T, T>, ProcessingTimeCallback {

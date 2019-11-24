@@ -56,6 +56,7 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 	private final MetricFetcher metricFetcher;
 	private final MetricStore metricStore;
 
+	// 请求处理handler
 	public TaskManagerDetailsHandler(
 			GatewayRetriever<? extends RestfulGateway> leaderRetriever,
 			Time timeout,
@@ -66,6 +67,7 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 		super(leaderRetriever, timeout, responseHeaders, messageHeaders, resourceManagerGatewayRetriever);
 
 		this.metricFetcher = Preconditions.checkNotNull(metricFetcher);
+		// 获取metric存储对象 metricStore
 		this.metricStore = metricFetcher.getMetricStore();
 	}
 
@@ -89,12 +91,14 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 
 				if (tmMetrics != null) {
 					log.debug("Create metrics info for TaskManager {}.", taskManagerResourceId);
+					// 解析tmMetrics创建TaskManagerMetricsInfo
 					taskManagerMetricsInfo = createTaskManagerMetricsInfo(tmMetrics);
 				} else {
 					log.debug("No metrics for TaskManager {}.", taskManagerResourceId);
 					taskManagerMetricsInfo = TaskManagerMetricsInfo.empty();
 				}
 
+				// TaskManagerDetailsInfo会包含TaskManagerInfo和TaskManagerMetricsInfo
 				return new TaskManagerDetailsInfo(
 					taskManagerInfo,
 					taskManagerMetricsInfo);
@@ -116,6 +120,7 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 			);
 	}
 
+	// 获取Taskmanager metrics 信息
 	private static TaskManagerMetricsInfo createTaskManagerMetricsInfo(MetricStore.TaskManagerMetricStore tmMetrics) {
 
 		Preconditions.checkNotNull(tmMetrics);
@@ -141,6 +146,7 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 
 		final List<TaskManagerMetricsInfo.GarbageCollectorInfo> garbageCollectorInfo = createGarbageCollectorInfo(tmMetrics);
 
+		// TaskManagerMetricsInfo内分装各种指标信息
 		return new TaskManagerMetricsInfo(
 			heapUsed,
 			heapCommitted,

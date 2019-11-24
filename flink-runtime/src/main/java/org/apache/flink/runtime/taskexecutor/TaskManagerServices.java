@@ -357,6 +357,7 @@ public class TaskManagerServices {
 			// taskmanager.memory.fraction
 			float memoryFraction = taskManagerServicesConfiguration.getMemoryFraction();
 
+			// taskmanager.memory.off-heap: false
 			if (memType == MemoryType.HEAP) {
 				long freeHeapMemoryWithDefrag = taskManagerServicesConfiguration.getFreeHeapMemoryWithDefrag();
 				// network buffers allocated off-heap -> use memoryFraction of the available heap:
@@ -369,7 +370,9 @@ public class TaskManagerServices {
 						"memory will be allocated lazily." , memoryFraction , relativeMemSize >> 20);
 				}
 				memorySize = relativeMemSize;
-			} else if (memType == MemoryType.OFF_HEAP) {
+			}
+			// taskmanager.memory.off-heap: true
+			else if (memType == MemoryType.OFF_HEAP) {
 				long maxJvmHeapMemory = taskManagerServicesConfiguration.getMaxJvmHeapMemory();
 				// The maximum heap memory has been adjusted according to the fraction (see
 				// calculateHeapSizeMB(long totalJavaMemorySizeMB, Configuration config)), i.e.
