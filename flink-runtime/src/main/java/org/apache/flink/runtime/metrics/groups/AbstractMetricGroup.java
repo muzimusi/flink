@@ -393,6 +393,7 @@ public abstract class AbstractMetricGroup<A extends AbstractMetricGroup<?>> impl
 								name + "'. Metric might not get properly reported. " + Arrays.toString(scopeComponents));
 					}
 
+					// 注册metric
 					registry.register(metric, name, this);
 				}
 				else {

@@ -173,6 +173,7 @@ public class MetricRegistryImpl implements MetricRegistry {
 
 			try {
 				metricQueryServiceRpcService = rpcService;
+				// 创建queryService
 				queryService = MetricQueryService.createMetricQueryService(rpcService, resourceID, maximumFramesize);
 				queryService.start();
 			} catch (Exception e) {
@@ -323,6 +324,7 @@ public class MetricRegistryImpl implements MetricRegistry {
 	//  Metrics (de)registration
 	// ------------------------------------------------------------------------
 
+	// 调用时机: AbstractMetricGroup.addMetric
 	@Override
 	public void register(Metric metric, String metricName, AbstractMetricGroup group) {
 		synchronized (lock) {
@@ -344,6 +346,7 @@ public class MetricRegistryImpl implements MetricRegistry {
 				}
 				try {
 					if (queryService != null) {
+						// MetricQueryService.addMetric用来添加metric
 						queryService.addMetric(metricName, metric, group);
 					}
 				} catch (Exception e) {

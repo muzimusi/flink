@@ -64,6 +64,7 @@ public class MetricQueryService extends RpcEndpoint implements MetricQueryServic
 
 	private final MetricDumpSerializer serializer = new MetricDumpSerializer();
 
+	// 创建集合用于存储不同type的metric
 	private final Map<Gauge<?>, Tuple2<QueryScopeInfo, String>> gauges = new HashMap<>();
 	private final Map<Counter, Tuple2<QueryScopeInfo, String>> counters = new HashMap<>();
 	private final Map<Histogram, Tuple2<QueryScopeInfo, String>> histograms = new HashMap<>();
@@ -71,6 +72,7 @@ public class MetricQueryService extends RpcEndpoint implements MetricQueryServic
 
 	private final long messageSizeLimit;
 
+	// MetricQueryService持有RpcService，用于rpc通信
 	public MetricQueryService(RpcService rpcService, String endpointId, long messageSizeLimit) {
 		super(rpcService, endpointId);
 		this.messageSizeLimit = messageSizeLimit;
@@ -82,6 +84,8 @@ public class MetricQueryService extends RpcEndpoint implements MetricQueryServic
 		return CompletableFuture.completedFuture(null);
 	}
 
+	// 添加metric信息
+	// 调用时机: MetricRegistryImpl.register -> queryService.addMetric
 	public void addMetric(String metricName, Metric metric, AbstractMetricGroup group) {
 		runAsync(() -> {
 			QueryScopeInfo info = group.getQueryServiceMetricInfo(FILTER);
@@ -112,9 +116,11 @@ public class MetricQueryService extends RpcEndpoint implements MetricQueryServic
 		});
 	}
 
+	// queryMetric发生在addMetric之后
 	@Override
 	public CompletableFuture<MetricDumpSerialization.MetricSerializationResult> queryMetrics(Time timeout) {
 		// akka 异步调用
+		// 对查询结果进行序列化操作
 		return callAsync(() -> enforceSizeLimit(serializer.serialize(counters, gauges, histograms, meters)), timeout);
 	}
 
@@ -241,6 +247,7 @@ public class MetricQueryService extends RpcEndpoint implements MetricQueryServic
 	 * @param resourceID resource ID to disambiguate the actor name
 	 * @return actor reference to the MetricQueryService
 	 */
+	// 创建自身对象
 	public static MetricQueryService createMetricQueryService(
 		RpcService rpcService,
 		ResourceID resourceID,

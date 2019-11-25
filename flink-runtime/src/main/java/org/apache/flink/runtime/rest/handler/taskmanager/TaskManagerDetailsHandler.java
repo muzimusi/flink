@@ -67,7 +67,7 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 		super(leaderRetriever, timeout, responseHeaders, messageHeaders, resourceManagerGatewayRetriever);
 
 		this.metricFetcher = Preconditions.checkNotNull(metricFetcher);
-		// 获取metric存储对象 metricStore
+		// 通过metricFetcher获取metric存储对象 metricStore
 		this.metricStore = metricFetcher.getMetricStore();
 	}
 
@@ -80,7 +80,8 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 
 		CompletableFuture<TaskManagerInfo> taskManagerInfoFuture = gateway.requestTaskManagerInfo(taskManagerResourceId, timeout);
 
-		// 拉取metric信息
+		// 拉取并更新metric信息
+		// 调用MetricFetcherImpl.update -> fetchMetrics -> retrieveAndQueryMetrics -> queryMetrics -> MetricQueryServiceGateway.queryMetrics
 		metricFetcher.update();
 
 		return taskManagerInfoFuture.thenApply(
@@ -145,6 +146,7 @@ public class TaskManagerDetailsHandler extends AbstractTaskManagerHandler<Restfu
 		long memorySegmentsAvailable = Long.valueOf(tmMetrics.getMetric("Status.Network.AvailableMemorySegments", "0"));
 		long memorySegmentsTotal = Long.valueOf(tmMetrics.getMetric("Status.Network.TotalMemorySegments", "0"));
 
+		// 创建taskManager gc metric信息
 		final List<TaskManagerMetricsInfo.GarbageCollectorInfo> garbageCollectorInfo = createGarbageCollectorInfo(tmMetrics);
 
 		// TaskManagerMetricsInfo内分装各种指标信息

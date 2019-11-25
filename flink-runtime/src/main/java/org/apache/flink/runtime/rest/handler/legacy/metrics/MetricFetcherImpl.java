@@ -62,6 +62,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 	private final Executor executor;
 	private final Time timeout;
 
+	// MetricFetcher中持有MetricStore对象，用来存储或者更新metric信息
 	private final MetricStore metrics = new MetricStore();
 	private final MetricDumpDeserializer deserializer = new MetricDumpDeserializer();
 	private final long updateInterval;
@@ -102,7 +103,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 			long currentTime = System.currentTimeMillis();
 			if (currentTime - lastUpdateTime > updateInterval) {
 				lastUpdateTime = currentTime;
-				// 获取metric
+				// 主动拉取metric信息
 				fetchMetrics();
 			}
 		}
@@ -144,6 +145,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 							LOG.debug("Requesting paths for query services failed.", throwable);
 						} else {
 							for (String queryServiceAddress : queryServiceAddresses) {
+								// 连接metric查询地址并开始查询
 								retrieveAndQueryMetrics(queryServiceAddress);
 							}
 						}
@@ -166,7 +168,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 								.map(
 									(Tuple2<ResourceID, String> tuple) -> {
 										queryServiceRetriever.retrieveService(tuple.f1) // 获取查询地址
-											.thenAcceptAsync(this::queryMetrics, executor);
+											.thenAcceptAsync(this::queryMetrics, executor); // 开始查询
 										return tuple.f0.getResourceIdString();
 									}
 								).collect(Collectors.toList());
@@ -189,6 +191,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 	private void retrieveAndQueryMetrics(String queryServiceAddress) {
 		LOG.debug("Retrieve metric query service gateway for {}", queryServiceAddress);
 
+		// 从queryServiceAddress得到akka RpcGateway
 		final CompletableFuture<MetricQueryServiceGateway> queryServiceGatewayFuture = queryServiceRetriever.retrieveService(queryServiceAddress);
 
 		queryServiceGatewayFuture.whenCompleteAsync(
@@ -196,6 +199,7 @@ public class MetricFetcherImpl<T extends RestfulGateway> implements MetricFetche
 				if (t != null) {
 					LOG.debug("Could not retrieve QueryServiceGateway.", t);
 				} else {
+					// 查询metrics
 					queryMetrics(queryServiceGateway);
 				}
 			},

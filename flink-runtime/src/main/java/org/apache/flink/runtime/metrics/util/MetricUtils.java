@@ -186,19 +186,26 @@ public class MetricUtils {
 		}
 	}
 
+	// JVM (Heap/Non-Heap)
+	// Heap metricGroup [Used	Committed	Maximum]
 	@VisibleForTesting
 	static void instantiateHeapMemoryMetrics(final MetricGroup metricGroup) {
 		instantiateMemoryUsageMetrics(metricGroup, () -> ManagementFactory.getMemoryMXBean().getHeapMemoryUsage());
 	}
 
+	// JVM (Heap/Non-Heap)
+	// Non-Heap metricGroup []
 	@VisibleForTesting
 	static void instantiateNonHeapMemoryMetrics(final MetricGroup metricGroup) {
 		instantiateMemoryUsageMetrics(metricGroup, () -> ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage());
 	}
 
 	private static void instantiateMemoryUsageMetrics(final MetricGroup metricGroup, final Supplier<MemoryUsage> memoryUsageSupplier) {
+		// Used
 		metricGroup.<Long, Gauge<Long>>gauge(MetricNames.MEMORY_USED, () -> memoryUsageSupplier.get().getUsed());
+		// Committed
 		metricGroup.<Long, Gauge<Long>>gauge(MetricNames.MEMORY_COMMITTED, () -> memoryUsageSupplier.get().getCommitted());
+		// Maximum
 		metricGroup.<Long, Gauge<Long>>gauge(MetricNames.MEMORY_MAX, () -> memoryUsageSupplier.get().getMax());
 	}
 
