@@ -90,6 +90,8 @@ public class MetricUtils {
 		return jobManagerMetricGroup;
 	}
 
+	// 创建TaskManagerMetricGroup
+	// MetricGroup是一种层级关系，就像树一样
 	public static Tuple2<TaskManagerMetricGroup, MetricGroup> instantiateTaskManagerMetricGroup(
 			MetricRegistry metricRegistry,
 			String hostName,
@@ -111,12 +113,17 @@ public class MetricUtils {
 		return Tuple2.of(taskManagerMetricGroup, statusGroup);
 	}
 
+	// 实例化metrics信息
 	public static void instantiateStatusMetrics(
 			MetricGroup metricGroup) {
 		MetricGroup jvm = metricGroup.addGroup("JVM");
 
 		instantiateClassLoaderMetrics(jvm.addGroup("ClassLoader"));
+		// Garbage Collection
 		instantiateGarbageCollectorMetrics(jvm.addGroup("GarbageCollector"));
+		// Memory
+		// JVM (Heap/Non-Heap)
+		// Outside JVM
 		instantiateMemoryMetrics(jvm.addGroup("Memory"));
 		instantiateThreadMetrics(jvm.addGroup("Threads"));
 		instantiateCPUMetrics(jvm.addGroup("CPU"));
@@ -140,6 +147,7 @@ public class MetricUtils {
 		metrics.<Long, Gauge<Long>>gauge("ClassesUnloaded", mxBean::getUnloadedClassCount);
 	}
 
+	// Garbage Collection
 	private static void instantiateGarbageCollectorMetrics(MetricGroup metrics) {
 		List<GarbageCollectorMXBean> garbageCollectors = ManagementFactory.getGarbageCollectorMXBeans();
 
@@ -151,8 +159,18 @@ public class MetricUtils {
 		}
 	}
 
+	// Memory
+	// JVM (Heap/Non-Heap)
+	//   Heap
+	//   Non-Heap
+	//   Total
+	// Outside JVM
+	//   Direct
+	//   Mapped
 	private static void instantiateMemoryMetrics(MetricGroup metrics) {
+		// JVM (Heap)
 		instantiateHeapMemoryMetrics(metrics.addGroup(METRIC_GROUP_HEAP_NAME));
+		// JVM (Non-Heap)
 		instantiateNonHeapMemoryMetrics(metrics.addGroup(METRIC_GROUP_NONHEAP_NAME));
 
 		final MBeanServer con = ManagementFactory.getPlatformMBeanServer();
@@ -162,6 +180,8 @@ public class MetricUtils {
 		try {
 			final ObjectName directObjectName = new ObjectName(directBufferPoolName);
 
+			// Outside JVM
+			// Direct
 			MetricGroup direct = metrics.addGroup("Direct");
 
 			direct.<Long, Gauge<Long>>gauge("Count", new AttributeGauge<>(con, directObjectName, "Count", -1L));
@@ -176,6 +196,8 @@ public class MetricUtils {
 		try {
 			final ObjectName mappedObjectName = new ObjectName(mappedBufferPoolName);
 
+			// Outside JVM
+			// Mapped
 			MetricGroup mapped = metrics.addGroup("Mapped");
 
 			mapped.<Long, Gauge<Long>>gauge("Count", new AttributeGauge<>(con, mappedObjectName, "Count", -1L));
@@ -194,7 +216,7 @@ public class MetricUtils {
 	}
 
 	// JVM (Heap/Non-Heap)
-	// Non-Heap metricGroup []
+	// Non-Heap metricGroup [Used	Committed	Maximum]
 	@VisibleForTesting
 	static void instantiateNonHeapMemoryMetrics(final MetricGroup metricGroup) {
 		instantiateMemoryUsageMetrics(metricGroup, () -> ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage());

@@ -141,7 +141,11 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 			MetricRegistryConfiguration.fromConfiguration(configuration),
 			ReporterSetup.fromConfiguration(configuration));
 
+		// metric信息监控
+		// metricQueryService RpcService
 		final RpcService metricQueryServiceRpcService = MetricUtils.startMetricsRpcService(configuration, rpcService.getAddress());
+		// MetricRegistryImpl.startQueryService -> MetricQueryService.createMetricQueryService
+		// -> startTaskManager -> MetricUtils.instantiateTaskManagerMetricGroup -> instantiateStatusMetrics
 		metricRegistry.startQueryService(metricQueryServiceRpcService, resourceId);
 
 		blobCacheService = new BlobCacheService(
@@ -362,6 +366,7 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 				EnvironmentInformation.getMaxJvmHeapMemory(),
 				localCommunicationOnly);
 
+		// 创建TaskManagerMetricGroup
 		Tuple2<TaskManagerMetricGroup, MetricGroup> taskManagerMetricGroup = MetricUtils.instantiateTaskManagerMetricGroup(
 			metricRegistry,
 			TaskManagerLocation.getHostName(remoteAddress),
