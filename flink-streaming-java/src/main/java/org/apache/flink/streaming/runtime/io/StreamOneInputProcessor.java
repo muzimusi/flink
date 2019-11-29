@@ -140,6 +140,8 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 		int channel = input.getLastChannel();
 		checkState(channel != StreamTaskInput.UNSPECIFIED);
 
+		//正常数据处理，最终会调用用户实现的userfunction的processElement，
+		// 对于KeyedProcessOperator就是调用用户定义keyedProcessFunction的processElement
 		processElement(recordOrMark, channel);
 		return true;
 	}
@@ -166,6 +168,7 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 		}
 		else if (recordOrMark.isWatermark()) {
 			// handle watermark
+			// 最终会调用到AbstractStreamOperator的processWatermark方法
 			statusWatermarkValve.inputWatermark(recordOrMark.asWatermark(), channel);
 		} else if (recordOrMark.isStreamStatus()) {
 			// handle stream status
@@ -210,6 +213,7 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 			try {
 				synchronized (lock) {
 					watermarkGauge.setCurrentWatermark(watermark.getTimestamp());
+					// 最终会调用到AbstractStreamOperator的processWatermark方法
 					operator.processWatermark(watermark);
 				}
 			} catch (Exception e) {

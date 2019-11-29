@@ -513,6 +513,12 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 	// Task lifecycle RPCs
 	// ----------------------------------------------------------------------
 
+	// Task执行流程
+	// TaskExecutor.submitTask
+	//   -> new Task -> task.startTaskThread() -> Task.run -> Task.doRun
+	//   -> loadAndInstantiateInvokable -> invokable.invoke
+	//   -> StreamTask.invoke -> run -> processInput -> inputProcessor.processInput()
+	//   -> processElement -> streamOperator.processElement
 	@Override
 	public CompletableFuture<Acknowledge> submitTask(
 			TaskDeploymentDescriptor tdd,
@@ -608,6 +614,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				taskRestore,
 				checkpointResponder);
 
+			// 创建Task
 			Task task = new Task(
 				jobInformation,
 				taskInformation,
@@ -649,6 +656,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 			}
 
 			if (taskAdded) {
+				// 开始线程执行Task类的run方法
 				task.startTaskThread();
 				taskCompletionTracker.trackTaskCompletion(task);
 

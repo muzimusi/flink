@@ -100,6 +100,7 @@ public class RestartIndividualStrategy extends FailoverStrategy {
 		try {
 			long createTimestamp = System.currentTimeMillis();
 			Execution newExecution = vertexToRecover.resetForNewExecution(createTimestamp, globalModVersion);
+			// 调度
 			newExecution.scheduleForExecution();
 		} catch (GlobalModVersionMismatch e) {
 			// this happens if a concurrent global recovery happens. simply do nothing.

@@ -57,6 +57,7 @@ public class KeyedProcessOperator<K, IN, OUT>
 		super.open();
 		collector = new TimestampedCollector<>(output);
 
+		//为该Operator构造InternalTimerService并启动，通过该InternalTimerService可以访问时间
 		InternalTimerService<VoidNamespace> internalTimerService =
 				getInternalTimerService("user-timers", VoidNamespaceSerializer.INSTANCE, this);
 

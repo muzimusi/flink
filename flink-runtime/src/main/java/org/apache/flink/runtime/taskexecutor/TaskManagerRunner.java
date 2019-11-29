@@ -326,6 +326,7 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 		return GlobalConfiguration.loadConfiguration(clusterConfiguration.getConfigDir(), dynamicProperties);
 	}
 
+	// TaskExecutor.start -> TaskExecutor.onStart
 	public static void runTaskManager(Configuration configuration, ResourceID resourceId) throws Exception {
 		final TaskManagerRunner taskManagerRunner = new TaskManagerRunner(configuration, resourceId);
 

@@ -519,6 +519,7 @@ public class Task implements Runnable, TaskActions, PartitionProducerStateProvid
 	/**
 	 * Starts the task's thread.
 	 */
+	// 开启task线程，会执行Task的run方法
 	public void startTaskThread() {
 		executingThread.start();
 	}

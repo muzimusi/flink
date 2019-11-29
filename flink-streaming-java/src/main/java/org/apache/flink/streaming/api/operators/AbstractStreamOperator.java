@@ -764,6 +764,7 @@ public abstract class AbstractStreamOperator<OUT>
 	 *
 	 * @param <N> The type of the timer namespace.
 	 */
+	// 被operator.open()里调用
 	public <K, N> InternalTimerService<N> getInternalTimerService(
 			String name,
 			TypeSerializer<N> namespaceSerializer,
@@ -781,8 +782,10 @@ public abstract class AbstractStreamOperator<OUT>
 
 	public void processWatermark(Watermark mark) throws Exception {
 		if (timeServiceManager != null) {
+			// 第一步处理watermark
 			timeServiceManager.advanceWatermark(mark);
 		}
+		// 第二步，将watermark发送到下游
 		output.emitWatermark(mark);
 	}
 

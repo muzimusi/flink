@@ -590,6 +590,7 @@ public class TaskSlotTable implements TimeoutListener<AllocationID> {
 	/**
 	 * Mapping class between a {@link Task} and a {@link TaskSlot}.
 	 */
+	// 绑定task和taskSlot
 	private static final class TaskSlotMapping {
 		private final Task task;
 		private final TaskSlot taskSlot;

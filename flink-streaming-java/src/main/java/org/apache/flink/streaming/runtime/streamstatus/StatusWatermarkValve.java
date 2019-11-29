@@ -186,6 +186,7 @@ public class StatusWatermarkValve {
 		// from some remaining aligned channel, and is also larger than the last output watermark
 		if (hasAlignedChannels && newMinWatermark > lastOutputWatermark) {
 			lastOutputWatermark = newMinWatermark;
+			// 最终会调用到AbstractStreamOperator的processWatermark方法
 			outputHandler.handleWatermark(new Watermark(lastOutputWatermark));
 		}
 	}

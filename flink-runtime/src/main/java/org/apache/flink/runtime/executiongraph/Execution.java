@@ -412,6 +412,7 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 	public CompletableFuture<Void> scheduleForExecution() {
 		final ExecutionGraph executionGraph = getVertex().getExecutionGraph();
 		final SlotProviderStrategy resourceProvider = executionGraph.getSlotProviderStrategy();
+		// 调度
 		return scheduleForExecution(
 			resourceProvider,
 			LocationPreferenceConstraint.ANY,
@@ -444,6 +445,7 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 			final CompletableFuture<Void> deploymentFuture;
 
 			if (allocationFuture.isDone() || slotProviderStrategy.isQueuedSchedulingAllowed()) {
+				// deploy execution
 				deploymentFuture = allocationFuture.thenRun(ThrowingRunnable.unchecked(this::deploy));
 			} else {
 				deploymentFuture = FutureUtils.completedExceptionally(
@@ -666,6 +668,7 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 	 *
 	 * @throws JobException if the execution cannot be deployed to the assigned resource
 	 */
+	// 开始部署作业
 	public void deploy() throws JobException {
 		assertRunningInJobMasterMainThread();
 

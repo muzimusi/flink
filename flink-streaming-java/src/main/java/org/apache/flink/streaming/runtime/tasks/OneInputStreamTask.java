@@ -75,6 +75,7 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 		if (numberOfInputs > 0) {
 			InputGate[] inputGates = getEnvironment().getAllInputGates();
 
+			// inputProcessor用来从inputGate里获取数据
 			inputProcessor = new StreamOneInputProcessor<>(
 					inputGates,
 					inSerializer,

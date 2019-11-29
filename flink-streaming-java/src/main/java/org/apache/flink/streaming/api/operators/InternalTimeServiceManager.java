@@ -124,6 +124,7 @@ public class InternalTimeServiceManager<K> {
 	}
 
 	public void advanceWatermark(Watermark watermark) throws Exception {
+		// operator.open()调用getInternalTimerService构建的InternalTimerService，用来处理该watermark
 		for (InternalTimerServiceImpl<?, ?> service : timerServices.values()) {
 			service.advanceWatermark(watermark.getTimestamp());
 		}

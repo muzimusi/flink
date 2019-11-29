@@ -275,6 +275,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	 * @param context context object for collaborative interaction between the action and the stream task.
 	 * @throws Exception on any problems in the action.
 	 */
+	// 在run方法中通过inputProcessor来从input gate里面读取消息，消息可以是正常的数据，也可以是watermark
 	protected void processInput(ActionContext context) throws Exception {
 		if (!inputProcessor.processInput()) {
 			context.allActionsCompleted();
@@ -392,7 +393,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 				// so that we avoid race conditions in the case that initializeState()
 				// registers a timer, that fires before the open() is called.
 
+				// 调用operator.initializeState()
 				initializeState();
+				// 调用operator.open()
 				openAllOperators();
 			}
 

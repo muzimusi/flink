@@ -270,6 +270,8 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N>, 
 
 		InternalTimer<K, N> timer;
 
+		// 逻辑timer时间小于watermark的都应该被触发回调
+		// 例如回调WindowOperator.onEventTime
 		while ((timer = eventTimeTimersQueue.peek()) != null && timer.getTimestamp() <= time) {
 			eventTimeTimersQueue.poll();
 			keyContext.setCurrentKey(timer.getKey());

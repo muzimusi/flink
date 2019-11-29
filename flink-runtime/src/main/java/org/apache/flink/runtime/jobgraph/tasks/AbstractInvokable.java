@@ -91,6 +91,7 @@ public abstract class AbstractInvokable {
 	 * @throws Exception
 	 *         Tasks may forward their exceptions for the TaskManager to handle through failure/recovery.
 	 */
+	// Task doRun 会调用 AbstractInvokable.invoke
 	public abstract void invoke() throws Exception;
 
 	/**
