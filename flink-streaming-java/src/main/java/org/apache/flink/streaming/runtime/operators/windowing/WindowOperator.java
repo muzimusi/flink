@@ -215,6 +215,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		setChainingStrategy(ChainingStrategy.ALWAYS);
 	}
 
+	// 总结：eventTime下才会用到waterMark
+	// windowOperator在open方法里会在TimerService里注册一个timer，后续每当有元素进入window后，会调用trigger.onElement来更新timerServer中注册的timer，直到timer=window.maxTimestamp
+	// 当watermark >= timer（window.maxTimestamp或者说end-1）会触发windowOperator.onEventTime（）[Triggable.onEventTime]
+	// windowOperator.onEventTime（）会调用trigger.onEventTime
 	@Override
 	public void open() throws Exception {
 		super.open();
@@ -404,6 +408,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 				triggerContext.key = key;
 				triggerContext.window = window;
 
+				// 每当有元素进入window后，会调用trigger.onElement来更新timerServer中注册的timer
+				// [如：eventTimeTrigger ctx.registerEventTimeTimer(window.maxTimestamp())]
 				TriggerResult triggerResult = triggerContext.onElement(element);
 
 				if (triggerResult.isFire()) {
@@ -603,6 +609,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 * @param window
 	 * 					the window whose state to discard
 	 */
+	// 注册何时消除window内容
 	protected void registerCleanupTimer(W window) {
 		// 窗口清理时间 window.maxTimestamp() + allowedLateness
 		// （end - 1） + allowedLateness
