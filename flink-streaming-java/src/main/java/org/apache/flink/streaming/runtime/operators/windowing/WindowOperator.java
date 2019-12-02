@@ -222,6 +222,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		this.numLateRecordsDropped = metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
 		timestampedCollector = new TimestampedCollector<>(output);
 
+		// operator向internalTimerService传入triggerable对象（自身）
+		// internalTimerService向InternalTimeServiceManager传入triggerable
+		// 在InternalTimerServiceImpl.startTimerService中注入triggerable
 		internalTimerService =
 				getInternalTimerService("window-timers", windowSerializer, this);
 
@@ -293,6 +296,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
+		// 为每个元素分配window
 		final Collection<W> elementWindows = windowAssigner.assignWindows(
 			element.getValue(), element.getTimestamp(), windowAssignerContext);
 
@@ -301,6 +305,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 		final K key = this.<K>getKeyedStateBackend().getCurrentKey();
 
+		// 窗口可以merger
 		if (windowAssigner instanceof MergingWindowAssigner) {
 			MergingWindowSet<W> mergingWindows = getMergingWindowSet();
 
@@ -382,7 +387,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 			// need to make sure to update the merging state in state
 			mergingWindows.persist();
-		} else {
+		}
+		// 窗口不可以merger
+		else {
 			for (W window: elementWindows) {
 
 				// drop if the window is already late
@@ -597,6 +604,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 * 					the window whose state to discard
 	 */
 	protected void registerCleanupTimer(W window) {
+		// 窗口清理时间 window.maxTimestamp() + allowedLateness
+		// （end - 1） + allowedLateness
 		long cleanupTime = cleanupTime(window);
 		if (cleanupTime == Long.MAX_VALUE) {
 			// don't set a GC timer for "end of time"
@@ -639,6 +648,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 */
 	private long cleanupTime(W window) {
 		if (windowAssigner.isEventTime()) {
+			// 窗口的清理时间 （end - 1） + allowedLateness
 			long cleanupTime = window.maxTimestamp() + allowedLateness;
 			return cleanupTime >= window.maxTimestamp() ? cleanupTime : Long.MAX_VALUE;
 		} else {

@@ -170,6 +170,7 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N>, 
 			this.keyDeserializer = null;
 			this.namespaceDeserializer = null;
 
+			// Triggerable 对象
 			this.triggerTarget = Preconditions.checkNotNull(triggerTarget);
 
 			// re-register the restored timers (if any)

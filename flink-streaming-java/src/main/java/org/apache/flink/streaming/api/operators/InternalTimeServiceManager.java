@@ -86,6 +86,7 @@ public class InternalTimeServiceManager<K> {
 
 		InternalTimerServiceImpl<K, N> timerService = registerOrGetTimerService(name, timerSerializer);
 
+		// 传入Triggerable
 		timerService.startTimerService(
 			timerSerializer.getKeySerializer(),
 			timerSerializer.getNamespaceSerializer(),
@@ -125,6 +126,7 @@ public class InternalTimeServiceManager<K> {
 
 	public void advanceWatermark(Watermark watermark) throws Exception {
 		// operator.open()调用getInternalTimerService构建的InternalTimerService，用来处理该watermark
+		// 这里之前调用getInternalTimerService构建的的InternalTimerService都要处理该watermark
 		for (InternalTimerServiceImpl<?, ?> service : timerServices.values()) {
 			service.advanceWatermark(watermark.getTimestamp());
 		}

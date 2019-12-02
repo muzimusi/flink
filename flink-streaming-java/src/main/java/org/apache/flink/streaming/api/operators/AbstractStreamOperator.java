@@ -777,6 +777,7 @@ public abstract class AbstractStreamOperator<OUT>
 		TypeSerializer<K> keySerializer = keyedStateBackend.getKeySerializer();
 		InternalTimeServiceManager<K> keyedTimeServiceHandler = (InternalTimeServiceManager<K>) timeServiceManager;
 		TimerSerializer<K, N> timerSerializer = new TimerSerializer<>(keySerializer, namespaceSerializer);
+		// 向InternalTimeServiceManager传入Triggerable对象
 		return keyedTimeServiceHandler.getInternalTimerService(name, timerSerializer, triggerable);
 	}
 

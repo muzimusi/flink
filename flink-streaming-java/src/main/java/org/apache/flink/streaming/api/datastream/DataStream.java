@@ -962,6 +962,7 @@ public class DataStream<T> {
 		final int inputParallelism = getTransformation().getParallelism();
 		final AssignerWithPunctuatedWatermarks<T> cleanedAssigner = clean(timestampAndWatermarkAssigner);
 
+		// 周期性处理时间戳和水位线的operator
 		TimestampsAndPunctuatedWatermarksOperator<T> operator =
 				new TimestampsAndPunctuatedWatermarksOperator<>(cleanedAssigner);
 
