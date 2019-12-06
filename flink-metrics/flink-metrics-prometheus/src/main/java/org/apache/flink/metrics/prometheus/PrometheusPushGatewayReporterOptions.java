@@ -23,6 +23,17 @@ import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.configuration.description.LinkElement;
 
+// 配合MetricOptions使用
+// ConfigConstants 也包含metrics
+
+// prometheusPushGateWayReport配置项目
+//metrics.reporters: promgateway
+//metrics.reporter.promgateway.class: org.apache.flink.metrics.prometheus.PrometheusPushGatewayReporter
+//metrics.reporter.promgateway.host: dolphin01v.jcdsj.zzt.360es.cn
+//metrics.reporter.promgateway.port: 9091
+//metrics.reporter.promgateway.jobName: flink-metrics-ppg
+//metrics.reporter.promgateway.randomJobNameSuffix: false
+//metrics.reporter.promgateway.deleteOnShutdown: false
 /**
  * Config options for the {@link PrometheusPushGatewayReporter}.
  */

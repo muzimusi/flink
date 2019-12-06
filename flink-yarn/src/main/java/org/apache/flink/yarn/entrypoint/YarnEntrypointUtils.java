@@ -85,6 +85,8 @@ public class YarnEntrypointUtils {
 //			ConfigConstants.YARN_APPLICATION_MASTER_PORT,
 //			ConfigConstants.DEFAULT_YARN_JOB_MANAGER_PORT);
 
+		// TODO onyarn模式按照appid设置metris名字
+
 		for (Map.Entry<String, String> property : dynamicProperties.entrySet()) {
 			configuration.setString(property.getKey(), property.getValue());
 		}

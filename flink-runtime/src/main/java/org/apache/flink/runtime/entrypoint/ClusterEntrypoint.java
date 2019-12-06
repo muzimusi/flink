@@ -258,7 +258,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 			blobServer = new BlobServer(configuration, haServices.createBlobStore());
 			blobServer.start();
 			heartbeatServices = createHeartbeatServices(configuration);
-			metricRegistry = createMetricRegistry(configuration);
+			metricRegistry = createMetricRegistry(configuration); // metrics配置
 
 			final RpcService metricQueryServiceRpcService = MetricUtils.startMetricsRpcService(configuration, bindAddress);
 			metricRegistry.startQueryService(metricQueryServiceRpcService, null);
@@ -302,7 +302,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 	protected MetricRegistryImpl createMetricRegistry(Configuration configuration) {
 		return new MetricRegistryImpl(
 			MetricRegistryConfiguration.fromConfiguration(configuration),
-			ReporterSetup.fromConfiguration(configuration));
+			ReporterSetup.fromConfiguration(configuration)); // ClusterEntryPoint 解析配置
 	}
 
 	@Override
