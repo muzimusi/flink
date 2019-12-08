@@ -16,36 +16,52 @@
  * limitations under the License.
  */
 
-package org.apache.flink.fs.dummy;
+package org.apache.flink.fs.anotherdummy;
 
-import org.apache.flink.core.fs.FileSystem;
-import org.apache.flink.core.fs.FileSystemFactory;
+import org.apache.flink.core.fs.FileStatus;
+import org.apache.flink.core.fs.Path;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
+class AnotherDummyFSFileStatus implements FileStatus {
+	private final Path path;
+	private final int length;
 
-/**
- * Factory of dummy FileSystem. See documentation of {@link DummyFSFileSystem}.
- */
-public class DummyFSFactory implements FileSystemFactory {
-
-	private final FileSystem fileSystem = new DummyFSFileSystem(getData());
-
-	@Override
-	public String getScheme() {
-		return DummyFSFileSystem.FS_URI.getScheme();
+	AnotherDummyFSFileStatus(Path path, int length) {
+		this.path = path;
+		this.length = length;
 	}
 
 	@Override
-	public FileSystem create(URI fsUri) throws IOException {
-		return fileSystem;
+	public long getLen() {
+		return length;
 	}
 
-	private static Map<String, String> getData() {
-		Map<String, String> data = new HashMap<>();
-		data.put("/words", "Hello World how are you, my dear dear world\n");
-		return data;
+	@Override
+	public long getBlockSize() {
+		return length;
+	}
+
+	@Override
+	public short getReplication() {
+		return 0;
+	}
+
+	@Override
+	public long getModificationTime() {
+		return 0;
+	}
+
+	@Override
+	public long getAccessTime() {
+		return 0;
+	}
+
+	@Override
+	public boolean isDir() {
+		return false;
+	}
+
+	@Override
+	public Path getPath() {
+		return path;
 	}
 }
