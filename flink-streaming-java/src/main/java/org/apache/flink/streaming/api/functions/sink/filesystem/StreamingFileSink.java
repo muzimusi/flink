@@ -355,12 +355,14 @@ public class StreamingFileSink<IN>
 		super.open(parameters);
 		this.processingTimeService = ((StreamingRuntimeContext) getRuntimeContext()).getProcessingTimeService();
 		long currentProcessingTime = processingTimeService.getCurrentProcessingTime();
+		// open方法中注册timer，用于定期（）检测bucket roll close动作
 		processingTimeService.registerTimer(currentProcessingTime + bucketCheckInterval, this);
 	}
 
 	@Override
 	public void onProcessingTime(long timestamp) throws Exception {
 		final long currentTime = processingTimeService.getCurrentProcessingTime();
+		// timer到期触发动作
 		buckets.onProcessingTime(currentTime);
 		processingTimeService.registerTimer(currentTime + bucketCheckInterval, this);
 	}
