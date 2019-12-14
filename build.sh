@@ -57,4 +57,5 @@ sh create_arjenlee_binary_release.sh $RELEASE_VERSION $SCALA_VERSION > $FLINK_DI
 #sh create_arjenlee_binary_release.sh $RELEASE_VERSION $SCALA_VERSION 2>&1 &
 
 # FLAGS="-Dscala-2.11"
+# ~/Software/env/apache-maven-3.2.5/bin/mvn clean package $FLAGS -Prelease -pl flink-dist -am -Dgpg.skip -Dmaven.javadoc.skip=true -Dcheckstyle.skip=true -DskipTests
 # mvn clean package $FLAGS -Prelease -pl flink-dist -am -Dgpg.skip -Dmaven.javadoc.skip=true -Dcheckstyle.skip=true -DskipTests > build.log 2>&1 &

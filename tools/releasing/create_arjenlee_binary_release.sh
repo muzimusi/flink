@@ -24,7 +24,7 @@
 RELEASE_VERSION=$1
 SCALA_VERSION=$2
 SKIP_GPG=${SKIP_GPG:-false}
-MVN=${MVN:-mvn}
+MVN=${MVN:-~/Software/env/apache-maven-3.2.5/bin/mvn}
 
 if [ -z "${RELEASE_VERSION}" ]; then
     echo "RELEASE_VERSION was not set."
