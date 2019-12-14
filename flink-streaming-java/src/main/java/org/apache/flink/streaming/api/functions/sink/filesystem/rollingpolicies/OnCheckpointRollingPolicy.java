@@ -44,6 +44,7 @@ public class OnCheckpointRollingPolicy<IN, BucketID> implements RollingPolicy<IN
 
 	@Override
 	public boolean shouldRollOnProcessingTime(PartFileInfo<BucketID> partFileState, long currentTime) {
+		// 由此可见，OnCheckpointRollingPolicy时，基于bucketCheckInterval的检测机制无效
 		return false;
 	}
 
